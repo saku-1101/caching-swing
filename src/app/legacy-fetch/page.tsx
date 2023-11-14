@@ -10,6 +10,8 @@ import { User } from "@prisma/client";
   動的なコンテンツの場合は、Contextを使用することは難しい
 */
 import { useEffect, useState } from "react";
+import BackButton from "../_component/back-button";
+import LinkButton from "../_component/link-button";
 import Content from "./children/content";
 import Header from "./children/header";
 import { Person } from "./children/user";
@@ -44,6 +46,9 @@ export default function LegacyFetchPage() {
 			<Header data={{ ...data }} randomNumber={randomNumber} user={user} />
 			<Content data={{ ...data }} randomNumber={randomNumber} />
 			<Person user={user} />
+			<BackButton />
+			<LinkButton link="/prc-tanstack" label="tanstack" />
+			<LinkButton link="/prc-swr" label="swr" />
 		</div>
 	);
 }

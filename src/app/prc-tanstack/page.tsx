@@ -21,6 +21,7 @@ export default function TanstackPage() {
 				<Person />
 				<BackButton />
 				<LinkButton link="/prc-swr" label="swr" />
+				<LinkButton link="/prc-tanstack" label="tanstack" />
 			</div>
 		</QueryClientProvider>
 	);
