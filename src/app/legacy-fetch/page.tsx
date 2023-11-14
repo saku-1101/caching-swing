@@ -49,6 +49,7 @@ export default function LegacyFetchPage() {
 			<BackButton />
 			<LinkButton link="/prc-tanstack" label="tanstack" />
 			<LinkButton link="/prc-swr" label="swr" />
+			<LinkButton link="/prc-fetch" label="fetch" />
 		</div>
 	);
 }

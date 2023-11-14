@@ -26,6 +26,7 @@ export default function SWRPage() {
 			<BackButton />
 			<LinkButton link="/prc-tanstack" label="tanstack" />
 			<LinkButton link="/prc-fetch" label="fetch" />
+			<LinkButton link="/legacy-fetch" label="legacy" />
 		</div>
 	);
 }

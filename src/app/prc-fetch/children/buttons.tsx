@@ -7,6 +7,7 @@ export default function Buttons() {
 			<BackButton />
 			<LinkButton link="/prc-tanstack" label="tanstack" />
 			<LinkButton link="/prc-swr" label="swr" />
+			<LinkButton link="/legacy-fetch" label="legacy" />
 		</>
 	);
 }

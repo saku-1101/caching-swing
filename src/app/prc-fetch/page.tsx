@@ -9,21 +9,16 @@ import Buttons from "./children/buttons";
   動的なコンテンツの場合は、Contextを使用することは難しい
 */
 import Content from "./children/content";
+import FormOutput from "./children/form-output";
 import Header from "./children/header";
 import { Person } from "./children/user";
-import { fetcher } from "./fetcher";
 
 export default async function LegacyFetchPage() {
-	const user = await fetcher({
-		url: `${process.env.BASE_URL}/api/get/user`,
-		tag: "user",
-	});
-
 	return (
 		<div>
 			<Header />
 			<Content />
-			<div>Hello {user.name}!</div>
+			<FormOutput />
 			<Person />
 			<Buttons />
 		</div>
