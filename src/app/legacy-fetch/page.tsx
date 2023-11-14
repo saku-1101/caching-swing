@@ -30,7 +30,7 @@ export default function LegacyFetchPage() {
 	useEffect(() => {
 		Promise.all([
 			fetcher("https://api.github.com/repos/vercel/next.js"),
-			fetcher("api/get/unstable/data"),
+			fetcher("/api/get/unstable/data"),
 			fetcher("/api/get/user"),
 		]).then(([data, number, user]) => {
 			setData(data);
