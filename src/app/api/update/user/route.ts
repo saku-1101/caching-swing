@@ -13,7 +13,7 @@ export async function POST( req: Request,
         data: { name: newName },
       });
       revalidateTag("user");
-    return NextResponse.json({updatedUser}, {status: 200})
+    return NextResponse.json({...updatedUser}, {status: 200})
     }catch{
       return NextResponse.json({message: "error"}, {status: 500})
     }

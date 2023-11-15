@@ -45,7 +45,7 @@ export default function LegacyFetchPage() {
 		<div>
 			<Header data={{ ...data }} randomNumber={randomNumber} user={user} />
 			<Content data={{ ...data }} randomNumber={randomNumber} />
-			<Person user={user} />
+			<Person user={user} setter={setUser} />
 			<BackButton />
 			<LinkButton link="/prc-tanstack" label="tanstack" />
 			<LinkButton link="/prc-swr" label="swr" />
