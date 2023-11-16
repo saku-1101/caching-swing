@@ -266,6 +266,8 @@ OSSありがとう！🙌🏻
 react-queryがwindowにフォーカスが当たった時ではなくvisibilitychangeによってデータの再検証を行う方向になったお話を先ほどしました。
 以前react-queryを使用した時は、windowフォーカスで再検証が行われていたため、今回の調査の時にwindowを二つ開いて一つのwindowでデータを更新した時、もう一つのwindowに戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
 
+https://github.com/TanStack/query/discussions/6364
+
 結果、私の確認不足ということで、v5から上記の挙動に変わっていたのですが、今は`broadcastQueryClient`でアプリレベルでconnectionを張って変更を検知できるようにしている機能を開発してるよという回答をいただき、それも試してみました。詳細な仕組みは理解できていません。(実はこれもexperimentalとしてlatestのdocumentには明記されている)
 ```diff:js page.tsx
 "use client";
