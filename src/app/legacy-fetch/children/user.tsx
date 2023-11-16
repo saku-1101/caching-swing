@@ -20,12 +20,7 @@ export const Person = ({
 				name: data.get("name"),
 			}),
 		});
-		// 初期レンダリングuseEffectを使用しているので、再レンダリングが行われない限り更新されない
-		// pages routerではnext/routerからのrouter.reload()を使用して際レンダリングをトリガーして更新できる
-		// app routerではnext/navigationにclient componentの再レンダリングをトリガーするようなメソッドはない
-		// *router.refresh()はRSCの再レンダリングはトリガーできるがCSRの状態は保ったままRSCとマージする
-		// https://nextjs.org/docs/app/api-reference/functions/use-router
-		// 親のuseStateセッター関数を渡して、親で再レンダリングをトリガーする
+
 		const user = await res.json();
 		setter(user);
 		router.refresh();
