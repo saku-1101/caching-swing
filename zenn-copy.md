@@ -12,13 +12,13 @@ https://github.com/saku-1101/caching-swing
 この方法のメリットは、特に追加のライブラリを要さない且つ理解しやすいというところ。
 デメリットとしては、propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる点、それを避けるために各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する点、next/routerが使えない環境では直感的なUI更新が行えない点、データ取得中や更新中の状態管理(loading, validating, error...)などがswrやreact queryを用いた時のように細かく行えない点などが挙げられます。
 
-### 実験
+### useEffectを用いたデータフェッチの調査方法
 階層のトップレベルでuseEffectを用いてデータフェッチを行うので、App Routerでは'use client'ディレクティブを付与します。
 
 useEffectの依存配列を空にして、useEffectの発火が何にも依存しない・比較されない状態、つまり初期レンダリングの時にしか発火されない状態にし、第一引数内でデータフェッチ処理を行います。
 データはuseState hooksのset関数によってstateに保持されます。
 そのstateをデータが必要な各々のコンポーネントにpropsとして渡していきます。
-(※ここでPersonコンポーネントに渡しているset propsが後から重要な役割を担います)
+(※ここでPersonコンポーネントに渡しているsetter propsが後から重要な役割を担います)
 
 子コンポーネントでユーザ名の更新をしてみましょう。
 (ここでは極力Next.js v14の機能を使わないことを前提として話を進めていくので、Server Actionsは使用しません。)
@@ -37,7 +37,7 @@ https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f
 
 set関数がのちに説明するmutateの役割のようになっているイメージです。
 
-### 挙動
+### 結果
 データ取得・更新のたびに新しくデータがフェッチされ、現状の実装では全てのコンポーネントの再レンダリングも起こります。
 :::message
 動画ではuserのみの更新リクエストが発生していますが、これはApp Routerのキャッシュ機能によるもので、Pages Routerで同等のデータフェッチをした場合はuseEffect内のデータフェッチが全て行われます
@@ -57,22 +57,16 @@ set関数がのちに説明するmutateの役割のようになっているイ�
 :::
 今回はトップの親コンポーネントでuseEffectを使用して、意図的にリクエストを親にまとめてデータを子コンポーネントにpropsとして配布するという形にしていますが、もしそれぞれの子コンポーネントでuseEffectを使用してそれぞれのレンダリング時にデータを取得するような書き方をすると、別コンポーネントでのデータ取得は別物とみなされるため、多くのトランザクションが発生することになります。
 
-## SWR, TanStack Query
-次に、SWR, TanStack Queryを用いてデータのフェッチ・更新を行うときの挙動をそれぞれ確認していきます。
+## SWRを用いたデータフェッチ
+次に、SWRを用いてデータのフェッチ・更新を行うときの挙動を確認していきます。
 
-SWRはTanStack Queryと比較してバンドルサイズが小さく軽量なライブラリでできることもシンプル。TanStack QueryはSWRと比較して多機能です。
-SWRやTanStack Queryのようなサードパーティ製のデータフェッチライブラリを使うことのメリットは、propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点、それでいて無駄なネットワークトランザクションが発生しない点、直感的に更新後の状態をUIに反映できる点、データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点などが挙げられます。
+SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットは、propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点、それでいて無駄なネットワークトランザクションが発生しない点、レスポンスのキャッシュが行える点、直感的に更新後の状態をUIに反映できる点、データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点などが挙げられます。
+デメリットとしては、これらも内部的にはContextやuse(experimental), EffectなどのClient Hooksを使用してContext Providerとして状態を管理することでキャッシュとして扱っているので、RSCとの相性はvery goodでは無いという印象なことです。
 
 そのほかにもたくさんのメリットが紹介されています。
 [SWR](https://swr.vercel.app/ja)
-[TanStack Query](https://tanstack.com/query/latest)
 
-デメリットとしては、これらも内部的にはuseContextやuse(experimental)などのclient hooksを使用してContext Providerとして状態を管理することでキャッシュとして扱っているので、現時点でもRSCとの相性はvery goodでは無いという印象なことです。
-
-### SWR
-SWRの挙動から確認していきます。
-
-#### 実験
+### SWRを用いたデータフェッチの調査方法
 SWRを使用するために、先ほどと同様、階層最上位のコンポーネントに'use client'ディレクティブを付与しています。
 
 しかし、ここではデータ取得を行っておらず、各コンポーネントもpropsを持っていません。
@@ -97,17 +91,17 @@ SWRではデータ更新の際にmutateメソッドを使用することで、�
 すると、validationが起こり、最新のデータがフェッチされてUIに反映されます。
 ![](https://storage.googleapis.com/zenn-user-upload/a56c4f8b9b1d-20231116.gif)
 
-#### 挙動
+### 結果
 先ほどのデータ更新時の再レンダリング範囲注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
 ![](https://storage.googleapis.com/zenn-user-upload/25124dde8481-20231116.gif)
 
 また、ほかにもSWRにはデータを最新に保つ仕組みがいくつか備わっています。その一部を見てみましょう。
 
-##### Revalidate on Focus
+#### Revalidate on Focus
 windowにフォーカスが当たった場合に自動的に再検証が走り、最新のデータがフェッチされ、再レンダリングされます。
 ![](https://storage.googleapis.com/zenn-user-upload/8dfcf5603698-20231116.gif)
 
-##### Revalidate on Interval
+#### Revalidate on Interval
 windowにフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔で再検証を走らせてデータ更新を行うことができます。
 異なるデバイス間で定期的にデータ更新を行う際に便利です。
 ```diff:js useGetUser.ts
@@ -129,7 +123,7 @@ export const useGetUser = () => {
 ```
 ![](https://storage.googleapis.com/zenn-user-upload/c0e656740d7a-20231116.gif)
 
-#### リクエストの重複
+### リクエストの重複
 SWRには重複排除の仕組みが備わっています。
 この例では、各コンポーネントにデータ取得の責務を結びつけるために、内部でuseSWRを用いたカスタムhooksをコンポーネント内で呼び出していました。
 
@@ -140,10 +134,14 @@ useSWRでは同じキーを持ち、ほぼ同時期にレンダリングされ�
 
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻
 
-### TanStack Query
-TanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
+## TanStack Queryを用いたデータフェッチ
+TanStack QueryもSWRと同様クライアントキャッシュを利用したデータフェッチが行えるライブラリです。
+バンドルサイズはSWRの３倍ほどありますが、SWRよりも高機能です。
+そんなTanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
 
-#### 実験
+[TanStack Query](https://tanstack.com/query/latest)
+
+### TanStack Queryを用いたデータフェッチの調査方法
 TanStack Queryも内部的にContextを使用しているため、TanStack Queryを使用するコンポーネントをまるっとQueryClientProviderでラップしなければなりません。そのため、ここでもトップ階層に'use client'ディレクティブを置いておきます。
 QueryClientProviderはnewしたQueryClientインスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにします。
 ```page.tsx
@@ -194,12 +192,12 @@ SWRを用いたときのデータ更新処理は
 
 となり、DB update処理中（API内部処理実行中）の状態を、TanStack Queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
 
-#### 挙動
+### 結果
 上記の動画より、TanStack QueryもSWRの時ように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。TanStack Queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
 
 TanStack Queryにもデータを最新に保つ仕組みが備わっています。Window Focus RefetchingについてSWRと比較して見てみましょう。
 
-##### Window Focus Refetching
+#### Window Focus Refetching
 v4まではwindowにフォーカスが当たった場合に自動的に再検証が走り、最新のデータに書きかわる、SWR同等の仕様でした。
 しかし、こちらの[PR](https://github.com/TanStack/query/pull/4805)によりfocusイベントで再検証が走ることのデメリットが議論された結果、v5からはfocusイベントではなくvisibilitychangeによって自動的再検証が走るような仕様になっているようです。
 
@@ -211,14 +209,14 @@ visibilitychangeで再検証が走るTanStack Query
 
 focusで再検証が走ることはSWRでも議論されており、[PR](https://github.com/vercel/swr/pull/2672)も出ているので、将来的にはmergeされてTanStack Queryの仕様に近づくのだと思います。🏗️
 
-#### リクエストの重複
-こちらもSWR同様リクエストをキーで管理しているので、重複が排除されます。
+### リクエストの重複
+こちらもSWR同様、リクエストをキーで管理しているので重複が排除されます。
 ![tanstackリクエストの重複](https://storage.googleapis.com/zenn-user-upload/169e1a2cb75b-20231116.png)
 
 ## App Router cache
 最後に、Next.js App Routerのキャッシュ機構を用いたデータフェッチと再検証を見ていきます。
 
-### 実験
+### App Routerでのデータフェッチの調査方法
 RSC(React Server Component)を使用します。formを含む葉のPersonコンポーネント(Client Component)以外をRSCとして、それぞれコンポーネント内でfetch関数を直接呼び出してデータの取得を行います。
 （e.g.; header.tsx）
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/children/header.tsx
@@ -232,7 +230,7 @@ https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/error.tsx
 
 それでは、Personコンポーネント内のformを用いてユーザ名を更新してみましょう。
-ここではServer Actionsを用いて更新処理を行います。(実験環境: next.js v14.0.2)
+ここではServer Actionsを用いて更新処理を行います。(調査方法環境: next.js v14.0.2)
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/actions/handleUpdateUserName.ts
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/children/user.tsx
 
@@ -244,7 +242,7 @@ https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e
 fetchの際のoptionとして`{ next: { tags: [tag] } }`が渡されたものに関しては、これがデータの再検証の際のキャッシュのタグとして紐付けられます。
 Server Actionsでデータ更新後に`revalidateTag(tag);`を行うとNext.js組み込みのData Cacheストレージからそのタグに紐づけられたキャッシュが再検証されて最新のデータに置き換わります。
 
-### 挙動
+### 結果
 RSCのfetchを用いた時のデータ取得・更新の挙動です。
 ![](https://storage.googleapis.com/zenn-user-upload/222f91481c64-20231116.gif)
 
