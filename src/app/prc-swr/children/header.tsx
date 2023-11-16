@@ -18,9 +18,9 @@ export default function Header() {
 	const { user, userError, userIsLoading, userIsValidating } = useGetUser();
 
 	if (githubIsLoading || numberIsLoading || userIsLoading) {
-		return <div>⏳loading...</div>;
+		return <div>⏳Initial loading...</div>;
 	} else if (githubIsValidating || numberIsValidating || userIsValidating) {
-		return <div>validating...</div>;
+		return <div>⏳loading...</div>;
 	} else if (githubError || numberError || userError) {
 		return <div>failed to load</div>;
 	}

@@ -15,9 +15,9 @@ export default function Header() {
 		isFetching: numberIsFetching,
 		isPending: numberIsPending,
 	} = useGetNumber();
-	const { user, userError, userIsLoading } = useGetUser();
+	const { user, userError, userIsFetching } = useGetUser();
 
-	if (githubIsFetching || numberIsFetching || userIsLoading) {
+	if (githubIsFetching || numberIsFetching || userIsFetching) {
 		return <div>⏳loading...</div>;
 	} else if (githubIsPending || numberIsPending) {
 		return <div>validating...</div>;
