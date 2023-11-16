@@ -1,6 +1,8 @@
 import { fetcher } from "../fetcher";
+import { sleep } from "../sleep";
 
 export default async function Header() {
+	await sleep(1500);
 	const data = await fetcher({
 		url: "https://api.github.com/repos/vercel/next.js",
 	});

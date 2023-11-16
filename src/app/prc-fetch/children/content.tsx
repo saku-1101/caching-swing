@@ -1,8 +1,12 @@
 import { fetcher } from "../fetcher";
-
+import { sleep } from "../sleep";
 export default async function Content() {
+	await sleep(1500);
 	const data = await fetcher({
 		url: "https://api.github.com/repos/vercel/next.js",
+		headers: {
+			Authorization: `Bearer ${process.env.NEXT_PUBLIC_GITHUB_TOKEN}`,
+		},
 	});
 	const randomNumber = await fetcher({
 		url: `${process.env.BASE_URL}/api/get/unstable/data`,
