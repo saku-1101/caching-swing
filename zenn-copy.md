@@ -1,6 +1,6 @@
  昨今のReact界隈では様々なデータフェッチの仕組みが提供されています。
 
-そこで、従来よくやっていたuseEffect hooksを用いたデータフェッチ、「キャッシュの仕組みを利用して状態管理ができる」ことで有名なデータフェッチライブラリのSWR, react-query、 そしてNext.js v14でのRSCを用いたデータフェッチ・App Routerのキャッシュ機構を比較しながらそれぞれの挙動と特徴を理解して正しく使っていこうというのが今回の試みです。
+そこで、従来よくやっていたuseEffect hooksを用いたデータフェッチ、「クライアントサイドキャッシュの仕組みを利用して状態管理ができる」ことで有名なデータフェッチライブラリのSWR, TanStack Query、そしてNext.jsでのRSCを用いたデータフェッチ・App Router組み込みのキャッシュ機構を比較しながらそれぞれの挙動と特徴を理解して正しく使っていこうというのが今回の試みです。
 
 ## Repository
 以下は今回調査するにあたって用いたリポジトリです。
@@ -16,9 +16,9 @@ https://github.com/saku-1101/caching-swing
 階層のトップレベルでuseEffectを用いてデータフェッチを行うので、App Routerでは'use client'ディレクティブを付与します。
 
 useEffectの依存配列を空にして、useEffectの発火が何にも依存しない・比較されない状態、つまり初期レンダリングの時にしか発火されない状態にし、第一引数内でデータフェッチ処理を行います。
-データはuseState hooksのsetter関数によってstateに保持されます。
+データはuseState hooksのset関数によってstateに保持されます。
 そのstateをデータが必要な各々のコンポーネントにpropsとして渡していきます。
-(※ここでPersonコンポーネントに渡しているsetter propsが後から重要な役割を担います)
+(※ここでPersonコンポーネントに渡しているset propsが後から重要な役割を担います)
 
 子コンポーネントでユーザ名の更新をしてみましょう。
 (ここでは極力Next.js v14の機能を使わないことを前提として話を進めていくので、Server Actionsは使用しません。)
@@ -30,12 +30,12 @@ https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f
 ここで現在のデータ取得できる条件を思い出すと、**初期レンダリング時**でした。
 Pages Routerの時はrouter.reload()をして再レンダリングを直感的にトリガーしていた人が多いかもしれません。
 Pages Routerではnext/routerからuseRouterがインポートされていましたが、App RouterではuseRouterはnext/navigationからのインポートとなり、仕様も異なります。router.reload()のように内部的に`window.location.reload()`をコールするようなメソッドは提供されていません。
-そこで、先ほどpropsとして渡しておいたuseStateのsetter関数を子コンポーネントから呼び出すことによって親要素レベルからの再レンダリングを行います。
+そこで、先ほどpropsとして渡しておいたuseStateのset関数を子コンポーネントから呼び出すことによって親要素レベルからの再レンダリングを行います。
 https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/legacy-fetch/children/user.tsx#L24-L27
 
 こうすることでレンダリングがトリガーされ、更新後の状態がUIに反映されます。
 
-setter関数がのちに説明するmutateの役割のようになっているイメージです。
+set関数がのちに説明するmutateの役割のようになっているイメージです。
 
 ### 挙動
 データ取得・更新のたびに新しくデータがフェッチされ、現状の実装では全てのコンポーネントの再レンダリングも起こります。
@@ -57,15 +57,15 @@ setter関数がのちに説明するmutateの役割のようになっている�
 :::
 今回はトップの親コンポーネントでuseEffectを使用して、意図的にリクエストを親にまとめてデータを子コンポーネントにpropsとして配布するという形にしていますが、もしそれぞれの子コンポーネントでuseEffectを使用してそれぞれのレンダリング時にデータを取得するような書き方をすると、別コンポーネントでのデータ取得は別物とみなされるため、多くのトランザクションが発生することになります。
 
-## SWR, react-query
-次に、SWR, react-queryを用いてデータのフェッチ・更新を行うときの挙動をそれぞれ確認していきます。
+## SWR, TanStack Query
+次に、SWR, TanStack Queryを用いてデータのフェッチ・更新を行うときの挙動をそれぞれ確認していきます。
 
-SWRはreact-queryと比較してバンドルサイズが小さく軽量なライブラリでできることもシンプル。react-queryはSWRと比較して多機能です。
-SWRやreact-queryのようなサードパーティ製のデータフェッチライブラリを使うことのメリットは、propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点、それでいて無駄なネットワークトランザクションが発生しない点、直感的に更新後の状態をUIに反映できる点、データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点などが挙げられます。
+SWRはTanStack Queryと比較してバンドルサイズが小さく軽量なライブラリでできることもシンプル。TanStack QueryはSWRと比較して多機能です。
+SWRやTanStack Queryのようなサードパーティ製のデータフェッチライブラリを使うことのメリットは、propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点、それでいて無駄なネットワークトランザクションが発生しない点、直感的に更新後の状態をUIに反映できる点、データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点などが挙げられます。
 
 そのほかにもたくさんのメリットが紹介されています。
 [SWR](https://swr.vercel.app/ja)
-[react-query](https://tanstack.com/query/latest)
+[TanStack Query](https://tanstack.com/query/latest)
 
 デメリットとしては、これらも内部的にはuseContextやuse(experimental)などのclient hooksを使用してContext Providerとして状態を管理することでキャッシュとして扱っているので、現時点でもRSCとの相性はvery goodでは無いという印象なことです。
 
@@ -140,11 +140,11 @@ useSWRでは同じキーを持ち、ほぼ同時期にレンダリングされ�
 
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻
 
-### react-query
-react-queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
+### TanStack Query
+TanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
 
 #### 実験
-react-queryも内部的にContextを使用しているため、react-queryを使用するコンポーネントをまるっとQueryClientProviderでラップしなければなりません。そのため、ここでもトップ階層に'use client'ディレクティブを置いておきます。
+TanStack Queryも内部的にContextを使用しているため、TanStack Queryを使用するコンポーネントをまるっとQueryClientProviderでラップしなければなりません。そのため、ここでもトップ階層に'use client'ディレクティブを置いておきます。
 QueryClientProviderはnewしたQueryClientインスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにします。
 ```page.tsx
 export default function TanstackPage() {
@@ -166,15 +166,15 @@ export default function TanstackPage() {
 ```
 *↑/src/app/prc-tanstack/page.tsx*
 
-react-queryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、propsのバケツリレーを防ぐことができていますね。
+TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、propsのバケツリレーを防ぐことができていますね。
 
-Personコンポーネントでユーザ名を更新してみます。react-queryでは更新処理専用のhooks、useMutationが存在し、そのhooksが更新・更新時の状態を管理します。
+Personコンポーネントでユーザ名を更新してみます。TanStack Queryでは更新処理専用のhooks、useMutationが存在し、そのhooksが更新・更新時の状態を管理します。
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-tanstack/hooks/useMutateUser.ts
 
-細かいかもしれませんが、上記よりreact-queryではmutationという処理を行っているときの状態が管理できるので、mutateが使われたとき、つまり**データ更新処理が発火したときから**isPendingという状態を受け取ることができます。
+細かいかもしれませんが、上記よりTanStack Queryではmutationという処理を行っているときの状態が管理できるので、mutateが使われたとき、つまり**データ更新処理が発火したときから**isPendingという状態を受け取ることができます。
 そして、データ更新が正常に行われると、onSuccessでその状態を受け取り、`queryClient.invalidateQueries({ queryKey: ["/api/get/user"] });`にて`/api/get/user`をキーにもつリソースの再検証を発行します。
-再検証を発行されたリソース（ここではreact-queryの`useGetUser`）はデータの再フェッチを行うわけですが、そのときの状態は`useGetUser`n内部で用いられているuseQueryからisFetchingとして受け取ることができます。
-まとめると、react-queryでuseMutationを用いたときのデータ更新処理は
+再検証を発行されたリソース（ここではTanStack Queryの`useGetUser`）はデータの再フェッチを行うわけですが、そのときの状態は`useGetUser`n内部で用いられているuseQueryからisFetchingとして受け取ることができます。
+まとめると、TanStack QueryでuseMutationを用いたときのデータ更新処理は
 1. mutateでデータ更新をトリガーする
 2. データ更新がトリガーされたらisPendingを返す（Updating...表示）
 3. データ更新が完了したらonSuccessが状態を受け取り、キーを持つリソースの再検証を発行する(`useGetUser`にデータが古いことを伝えてリフェッチを促す)（Updating...非表示）
@@ -192,12 +192,12 @@ SWRを用いたときのデータ更新処理は
 6. 5の処理が完了する（⏳loading...非表示）
 ![](https://storage.googleapis.com/zenn-user-upload/77d80b781381-20231116.gif)
 
-となり、DB update処理中（API内部処理実行中）の状態を、react-queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
+となり、DB update処理中（API内部処理実行中）の状態を、TanStack Queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
 
 #### 挙動
-上記の動画より、react-queryもSWRの時ように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。react-queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
+上記の動画より、TanStack QueryもSWRの時ように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。TanStack Queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
 
-react-queryにもデータを最新に保つ仕組みが備わっています。Window Focus RefetchingについてSWRと比較して見てみましょう。
+TanStack Queryにもデータを最新に保つ仕組みが備わっています。Window Focus RefetchingについてSWRと比較して見てみましょう。
 
 ##### Window Focus Refetching
 v4まではwindowにフォーカスが当たった場合に自動的に再検証が走り、最新のデータに書きかわる、SWR同等の仕様でした。
@@ -206,10 +206,10 @@ v4まではwindowにフォーカスが当たった場合に自動的に再検証
 現状focusで再検証が走るSWR
 ![](https://storage.googleapis.com/zenn-user-upload/bf7fe92de8a0-20231116.gif)
 
-visibilitychangeで再検証が走るreact-query
+visibilitychangeで再検証が走るTanStack Query
 ![](https://storage.googleapis.com/zenn-user-upload/62696d85c3ed-20231116.gif)
 
-focusで再検証が走ることはSWRでも議論されており、[PR](https://github.com/vercel/swr/pull/2672)も出ているので、将来的にはmergeされてreact-queryの仕様に近づくのだと思います。🏗️
+focusで再検証が走ることはSWRでも議論されており、[PR](https://github.com/vercel/swr/pull/2672)も出ているので、将来的にはmergeされてTanStack Queryの仕様に近づくのだと思います。🏗️
 
 #### リクエストの重複
 こちらもSWR同様リクエストをキーで管理しているので、重複が排除されます。
@@ -250,7 +250,7 @@ RSCのfetchを用いた時のデータ取得・更新の挙動です。
 
 ### リクエストの重複
 #### Network Memorization
-Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、fetchを用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやreact-queryで内部的に用いたれていたContext Providerの仕組みがキャッシュによって実現されているイメージです。
+Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、fetchを用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いたれていたContext Providerの仕組みがキャッシュによって実現されているイメージです。
 
 しかし、リクエスト結果のキャッシュがインメモリのData Cacheストレージに残っており、それを再利用する場合は、ネットワークトランザクションさえ起こりません。
 ![rscリクエストの重複](https://storage.googleapis.com/zenn-user-upload/59b68b7a218b-20231116.png)
@@ -258,13 +258,13 @@ Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-appl
 ## まとめ
 自分の中で挙動や理解がまとまっていなかった、Reactにおけるさまざまなデータフェッチ・管理方法を浅く広くまとめることができて良い機会だったと思います。
 また、Reactの状態管理といえばRedux, zustand, Jotai...などが有名でよく使っていたのですが、RSCの登場によって、こうしたuseContextを内包するようなライブラリに使いにくさを感じ始めました。
-SWR, react-queryは「キャッシュの仕組みを利用して状態管理ができる」ということもよく言われていましたが、内部的な組み込みキャッシュの構造をよくみるとContextを使用しているのでRSCでの解決策にはなりにくそうです。
+SWR, TanStack Queryは「キャッシュの仕組みを利用して状態管理ができる」ということもよく言われていましたが、内部的な組み込みキャッシュの構造をよくみるとContextを使用しているのでRSCでの解決策にはなりにくそうです。
 とはいえ、それぞれのデータフェッチ方法の個性を活かしつつ、敵最適所で使わせてもらおうと思います。
 OSSありがとう！🙌🏻
 
-## 余談 - (react-query)broadcastQueryClientという実験的な機能
-react-queryがwindowにフォーカスが当たった時ではなくvisibilitychangeによってデータの再検証を行う方向になったお話を先ほどしました。
-以前react-queryを使用した時は、windowフォーカスで再検証が行われていたため、今回の調査の時にwindowを二つ開いて一つのwindowでデータを更新した時、もう一つのwindowに戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
+## 余談 - (TanStack Query)broadcastQueryClientという実験的な機能
+TanStack Queryがwindowにフォーカスが当たった時ではなくvisibilitychangeによってデータの再検証を行う方向になったお話を先ほどしました。
+以前TanStack Queryを使用した時は、windowフォーカスで再検証が行われていたため、今回の調査の時にwindowを二つ開いて一つのwindowでデータを更新した時、もう一つのwindowに戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
 
 https://github.com/TanStack/query/discussions/6364
 
@@ -272,7 +272,7 @@ https://github.com/TanStack/query/discussions/6364
 ```diff:js page.tsx
 "use client";
 +import { broadcastQueryClient } from "@tanstack/query-broadcast-client-experimental";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/TanStack Query";
 import BackButton from "../_component/back-button";
 import LinkButton from "../_component/link-button";
 import Content from "./children/content";
@@ -306,4 +306,4 @@ export default function TanstackPage() {
 
 動作環境：
 "@tanstack/query-broadcast-client-experimental": "5.8.3"
-"@tanstack/react-query": "5.8.3"
+"@tanstack/TanStack Query": "5.8.3"
