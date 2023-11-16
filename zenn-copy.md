@@ -1,6 +1,11 @@
- 昨今のReact界隈では様々なデータフェッチの仕組みが提供されています。
+昨今のReact界隈では様々なデータフェッチの仕組みが提供されていますが、一体どのような場面でどのデータフェッチ方法を使用したらベストなのでしょうか？
+
+開発のためにたくさんの選択肢が出てきた今、きちんとそれぞれの特徴を知って正しくフルに使ってあげたいものです。
 
 そこで、従来よくやっていたuseEffect hooksを用いたデータフェッチ、「クライアントサイドキャッシュの仕組みを利用して状態管理ができる」ことで有名なデータフェッチライブラリのSWR, TanStack Query、そしてNext.jsでのRSCを用いたデータフェッチ・App Router組み込みのキャッシュ機構を比較しながらそれぞれの挙動と特徴を理解して正しく使っていこうというのが今回の試みです。
+
+調査過程を含む長文になりますので、蛇足な方は以下から今回の結果をご覧ください。
+[結果](https://zenn.dev/articles/ca4caef5684cee#結果)
 
 ## Repository
 以下は今回調査するにあたって用いたリポジトリです。
@@ -10,7 +15,7 @@ https://github.com/saku-1101/caching-swing
 階層のトップレベルで`useEffect`を用いて、ページレンダリング時にデータ取得を行うやり方です。
 
 この方法のメリットは、特に追加のライブラリを要さない且つ理解しやすいというところ。
-デメリットとしては、propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる点、それを避けるために各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する点、next/routerが使えない環境では直感的なUI更新が行えない点、データ取得中や更新中の状態管理(loading, validating, error...)などがswrやreact queryを用いた時のように細かく行えない点などが挙げられます。
+デメリットとしては、propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる点、それを避けるために各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する点、next/routerが使えない環境では直感的なUI更新が行えない点、データ取得中や更新中の状態管理(loading, validating, error...)がswrやTanStack Queryを用いた時のように細かく行えない点などが挙げられます。
 
 ### useEffectを用いたデータフェッチの調査
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/legacy-fetch/page.tsx#L15-L46
@@ -34,8 +39,6 @@ https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f
 Pages Routerの時は`router.reload()`をして再レンダリングを直感的にトリガーしていた人が多いかもしれません。
 Pages Routerでは`next/router`から`useRouter`がインポートされていました。しかし、App Routerでは`useRouter`は`next/navigation`からのインポートとなり、仕様も異なります。`router.reload()`のように内部的に`window.location.reload()`をコールするようなメソッドは提供されていません。
 そこで、先ほど`props`として渡しておいた`useState`のset関数を子コンポーネントから呼び出すことによって親要素レベルからの再レンダリングを行っています。
-
-こうすることでレンダリングがトリガーされ、更新後の状態がUIに反映されます。
 
 set関数がのちに説明する`mutate`の役割のようになっているイメージです。
 
@@ -264,12 +267,35 @@ RSCのfetchを用いた時のデータ取得・更新の挙動です。
 
 ### リクエストの重複
 #### Network Memorization
-Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。
-SWRやTanStack Queryで内部的に用いたれていた`Context Provider`の仕組みがキャッシュによって実現されているイメージです。
+Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いたれていた`Context Provider`の仕組みがキャッシュによって実現されているイメージです。
 
 しかし、リクエスト結果のキャッシュがインメモリのData Cacheストレージに残っており、それを再利用する場合は、ネットワークトランザクションさえ起こりません。
 ![rscリクエストの重複](https://storage.googleapis.com/zenn-user-upload/59b68b7a218b-20231116.png)
 *インメモリキャッシュのおかげでいちいちData Sourceにアクセスしないため、Networkタブに何も表示されない*
+
+## 結果
+以上の調査をまとめた結果です。
+##### 結局いつどれ使ったらいいの
+|  | App Router Cache | SWR | TanStack Query | useEffect |
+| ---- | ---- | ---- | ---- | ---- |
+| Next.js v13 <= を使用している時 | RSCで⭕️ | RCCで⭕️  | RCCで⭕️ | 🔼 |
+| Next.js v13 > の時| ❌ | ⭕️ | ⭕️ | 🔼 |
+
+* RSC: React Server Component
+* RCC: React Client Component
+* 🔼: それ以外のアプローチが使えない場合に最終手段として使用
+* ❌: 使えない
+
+##### それぞれの特徴まとめ
+|  | App Router Cache | SWR | TanStack Query | useEffect |
+| ---- | ---- | ---- | ---- | ---- |
+| フェッチ方法 | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング  | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング | コンポーネント単位でのデータフェッチは基本的に行わない/useEffectを使用しているすべてのコンポーネントで起こる |
+| キャッシュ | ⭕️ | ⭕️ | ⭕️ | ❌ |
+| 状態表示(loading, 再検証など) | 🔼 | ⭕️ | ⭕️ | ❌ |
+| リクエスト重複排除 | ⭕️ | ⭕️ | ⭕️ | ❌ |
+* ⭕️: できる
+* 🔼: できるが他に劣る
+* ❌: できない
 
 ## まとめ
 自分の中で挙動や理解がまとまっていなかった、Reactにおけるさまざまなデータフェッチ・管理方法を浅く広くまとめることができて良い機会だったと思います。
