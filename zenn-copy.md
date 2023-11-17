@@ -19,7 +19,6 @@ https://github.com/saku-1101/caching-swing
 
 - propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる
 - 各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する
-- next/routerが使えない環境では直感的なUI更新が行えない
 - データ取得中や更新中の状態管理(loading, validating, error...)がSWRやTanStack Queryを用いた時のように細かく行えない
 
 ### useEffectを用いたデータフェッチの調査
@@ -79,7 +78,7 @@ SWRのようなサードパーティ製のデータフェッチライブラリ�
 そのほかにもたくさんのメリットが紹介されています。
 [SWR](https://swr.vercel.app/ja)
 
-デメリットとしては、これらも内部的には`Context`や`use(experimental)`, `Effect`などのClient Hooksを使用して`Context Provider`として状態を管理することでキャッシュとして扱っているので、RSCとの相性はvery goodでは無いという印象なことです。
+デメリットとしては、これらも内部的には`useContext`や`use(experimental)`, `useEffect`などのClient Hooksを使用して`Context Provider`として状態を管理することでキャッシュとして扱っているので、RSCとの相性はvery goodでは無いという印象なことです。
 
 ### SWRを用いたデータフェッチの調査方法
 SWRを使用するため、先ほどと同様、階層最上位のコンポーネントに`'use client'`ディレクティブを付与しています。
@@ -156,7 +155,7 @@ SWRには重複排除の仕組みが備わっています。
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
 
 ## TanStack Queryを用いたデータフェッチ
-TanStack QueryもSWRと同様クライアントキャッシュを利用したデータフェッチが行えるライブラリです。
+TanStack QueryもSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
 バンドルサイズはSWRの３倍ほどありますが、SWRよりも高機能です。
 
 そんなTanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
@@ -165,7 +164,7 @@ TanStack QueryもSWRと同様クライアントキャッシュを利用したデ
 
 ### TanStack Queryを用いたデータフェッチの調査
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/prc-tanstack/page.tsx#L10-L29
-TanStack Queryも内部的に`Context`や`Effect`を使用しているため、TanStack Queryを使用するコンポーネントをまるっと`QueryClientProvider`でラップしなければなりません。
+TanStack Queryも内部的に`useContext`や`useEffect`などを使用しているため、TanStack Queryを使用するコンポーネントをまるっと`QueryClientProvider`でラップしなければなりません。
 そのため、ここでもトップ階層に`'use client'`ディレクティブを置いておきます。
 
 `QueryClientProvider`は`new`した`QueryClient`インスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにしてくれます。
