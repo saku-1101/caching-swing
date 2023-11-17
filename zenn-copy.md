@@ -15,7 +15,12 @@ https://github.com/saku-1101/caching-swing
 階層のトップレベルで`useEffect`を用いて、ページレンダリング時にデータ取得を行うやり方です。
 
 この方法のメリットは、特に追加のライブラリを要さない且つ理解しやすいというところ。
-デメリットとしては、propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる点、それを避けるために各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する点、next/routerが使えない環境では直感的なUI更新が行えない点、データ取得中や更新中の状態管理(loading, validating, error...)がswrやTanStack Queryを用いた時のように細かく行えない点などが挙げられます。
+デメリットとしては次の点が挙げられます。
+
+- propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる
+- 各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する
+- next/routerが使えない環境では直感的なUI更新が行えない
+- データ取得中や更新中の状態管理(loading, validating, error...)がSWRやTanStack Queryを用いた時のように細かく行えない
 
 ### useEffectを用いたデータフェッチの調査
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/legacy-fetch/page.tsx#L15-L46
