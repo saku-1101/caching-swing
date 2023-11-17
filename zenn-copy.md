@@ -1,6 +1,6 @@
-昨今のReact界隈では様々なデータフェッチの仕組みが提供されていますが、一体どのような場面でどのデータフェッチ方法を使用したらベストなのでしょうか？
+昨今のReact・Next.js界隈では様々なデータフェッチの仕組みが提供されていますが、一体どのような場面でどのデータフェッチ方法を使用したらベストなのでしょうか？
 
-開発のためにたくさんの選択肢が出てきた今、きちんとそれぞれの特徴を知って正しくフルに使ってあげたいものです。
+開発のためにたくさんの選択肢が出てきた今、きちんとそれぞれの特長を知って正しくフルに使ってあげたいものです。
 
 そこで、従来よくやっていたuseEffect hooksを用いたデータフェッチ、「クライアントサイドキャッシュの仕組みを利用して状態管理ができる」ことで有名なデータフェッチライブラリのSWR, TanStack Query、そしてNext.jsでのRSCを用いたデータフェッチ・App Router組み込みのキャッシュ機構を比較しながらそれぞれの挙動と特徴を理解して正しく使っていこうというのが今回の試みです。
 
@@ -10,6 +10,7 @@
 ## Repository
 以下は今回調査するにあたって用いたリポジトリです。
 https://github.com/saku-1101/caching-swing
+https://github.com/saku-1101/caching-swing-pages
 
 ## useEffectを用いたデータフェッチ
 今回は、階層のトップレベルで`useEffect`を用いて、ページレンダリング時にデータ取得を行う方法を検証しました。
@@ -23,8 +24,6 @@ https://github.com/saku-1101/caching-swing
 
 ### useEffectを用いたデータフェッチの調査
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/legacy-fetch/page.tsx#L15-L46
-
-階層のトップレベルで`useEffect`を用いてデータフェッチを行うので、App Routerでは`'use client'`ディレクティブを付与します。
 
 `useEffect`の依存配列を空にして、`useEffect`の発火が何にも依存しない・比較されない状態、つまり初期レンダリングの時にしか発火されない状態にし、第一引数内でデータフェッチ処理を行います。
 データは`useState`のset関数によってstateに保持されます。
@@ -40,49 +39,56 @@ https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f
 更新した値をUIに反映していきます。
 https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/legacy-fetch/children/user.tsx#L24-L27
 ここで現在のデータ取得できる条件を思い出すと、**初期レンダリング時**でした。
-Pages Routerの時は`router.reload()`をして再レンダリングを直感的にトリガーしていた人が多いかもしれません。
-Pages Routerでは`next/router`から`useRouter`がインポートされていました。しかし、App Routerでは`useRouter`は`next/navigation`からのインポートとなり、仕様も異なります。`router.reload()`のように内部的に`window.location.reload()`をコールするようなメソッドは提供されていません。
-そこで、先ほど`props`として渡しておいた`useState`のset関数を子コンポーネントから呼び出すことによって親要素レベルからの再レンダリングを行っています。
-
-set関数がのちに説明する`mutate`の役割のようになっているイメージです。
+`router.reload()`をして再レンダリングをトリガーすることで、最新のデータがUIに反映されます。
 
 ### 結果
-データ取得・更新のたびに新しくデータがフェッチされ、現状の実装では全てのコンポーネントの再レンダリングも起こります。
-:::message
-動画ではuserのみの更新リクエストが発生していますが、これはApp Routerのキャッシュ機能によるものです。
-Pages Routerで同等のデータフェッチをした場合はuseEffect内のデータフェッチが全て行われます。
-:::
-
-![](https://storage.googleapis.com/zenn-user-upload/6d9c9abeb651-20231116.gif)
-*useEffect fetch with App Router*
+データ取得・更新のたびにすべてのデータが新しくフェッチされ、現状の実装では全てのコンポーネントの再レンダリングも起こります。
 
 ![](https://storage.googleapis.com/zenn-user-upload/2dc5d1bde994-20231116.gif)
 *useEffect fetch with Pages Router*
 
 
+余談ですが、App Routerで同様にuseEffectを用いて階層のトップレベルでデータをフェッチし、更新した場合の挙動です。
+
+動画ではuserのみ（更新処理を行なった部分のみ）の更新リクエストが発生していますが、これはApp Routerのキャッシュ機能によるものです。
+
+![](https://storage.googleapis.com/zenn-user-upload/6d9c9abeb651-20231116.gif)
+*useEffect fetch with App Router*
+::message
+Pages Routerでは`next/router`から`useRouter`がインポートされていました。
+しかし、App Routerでは`useRouter`は`next/navigation`からのインポートとなり、仕様も異なります。
+App Routerでは`router.reload()`のように内部的に`window.location.reload()`をコールするようなメソッドは提供されていません。
+そこで、先ほど`props`として渡しておいた`useState`のset関数を子コンポーネントから呼び出すことによって親要素レベルからの再レンダリングを行っています。
+
+set関数がのちに説明する`mutate`の役割のようになっているイメージです。
+::
+
 ### リクエストの重複
 ![useEffectを用いたデータフェッチ](https://storage.googleapis.com/zenn-user-upload/d5951d63eff3-20231116.png)
 *fetch with useEffect*
-:::message
-計6回のトランザクションが発生していますが、半分はStrict modeによるものですので、本番環境の呼び出しは3回です。
-:::
 
-今回はトップの親コンポーネントで`useEffect`を使用して、意図的にリクエストを親にまとめてデータを子コンポーネントに`props`として配布するという形にしています。
-しかし、もしそれぞれの子コンポーネントでuseEffectを使用してそれぞれのレンダリング時にデータを取得するような書き方をするとなると、別コンポーネントでのデータ取得は別物とみなされ、多くのトランザクションが発生することになります。
+今回はトップの親コンポーネントで`useEffect`を使用して、意図的にリクエストを親にまとめ、データを子コンポーネントに`props`として配布するという形にしています。
+
+Personコンポーネントでデータの更新後に`router.reload()`でリロードをかけて再レンダリングを行い、親のuseEffect内の処理をもう一度行なっているのでネットワークトランザクションは合計3回です。
+
+しかし、もしそれぞれの子コンポーネントでuseEffectを使用してそれぞれのレンダリング時にデータを取得するような書き方をするとなると、別コンポーネントでのデータ取得は別物とみなされ、多くのトランザクションが発生することになります...
 
 ## SWRを用いたデータフェッチ
 次に、SWRを用いてデータのフェッチ・更新を行うときの挙動を確認していきます。
 
-SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットは、propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点、それでいて無駄なネットワークトランザクションが発生しない点、レスポンスのキャッシュが行える点、直感的に更新後の状態をUIに反映できる点、データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点などが挙げられます。
+SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットとして
+- propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点
+- 個々のコンポーネントがデータフェッチの処理を含んでいても、無駄なネットワークトランザクションが発生しない点
+- レスポンスのキャッシュが行える点
+- 直感的に更新後の状態をUIに反映できる点
+- データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点
+
+などが挙げられます。
 
 そのほかにもたくさんのメリットが紹介されています。
 [SWR](https://swr.vercel.app/ja)
 
-デメリットとしては、これらも内部的には`useContext`や`use(experimental)`, `useEffect`などのClient Hooksを使用して`Context Provider`として状態を管理することでキャッシュとして扱っているので、RSCとの相性はvery goodでは無いという印象なことです。
-
 ### SWRを用いたデータフェッチの調査方法
-SWRを使用するため、先ほどと同様、階層最上位のコンポーネントに`'use client'`ディレクティブを付与しています。
-
 useEffectを使ったデータフェッチに比べて、ここではデータ取得を行っておらず、各コンポーネントも`props`を持っていません。
 その代わりに、データ取得のための`hooks`をいくつか追加しました。
 https://github.com/saku-1101/caching-swing/tree/main/src/app/prc-swr/hooks
@@ -94,8 +100,6 @@ https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f
 さらに、`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
 
 Personコンポーネントでユーザ名を更新してみましょう。
-ライブラリの機能を使用することでデータ更新を実現したいので、ここでも`Server Actions`の使用は割愛します。
-
 https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/prc-swr/children/user.tsx#L8-L19
 DB更新処理までは先ほどと同様、APIに`POST`リクエストを送信しているだけです。
 
@@ -120,7 +124,7 @@ SWRではデータ更新の際に`mutate`メソッドを使用することで、
 
 #### Revalidate on Interval
 `window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔で再検証を走らせてデータ更新を行うことができます。
-異なるデバイス間で定期的にデータ更新を行う際に便利です。
+異なるデバイス間で定期的にデータ同期を行う際に便利です。
 ```diff:js useGetUser.ts
 import useSWR from "swr";
 import { fetcher } from "./fetcher";
@@ -164,13 +168,14 @@ TanStack QueryもSWRと同様クライアントサイドキャッシュを利用
 
 ### TanStack Queryを用いたデータフェッチの調査
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/prc-tanstack/page.tsx#L10-L29
-TanStack Queryも内部的に`useContext`や`useEffect`などを使用しているため、TanStack Queryを使用するコンポーネントをまるっと`QueryClientProvider`でラップしなければなりません。
-そのため、ここでもトップ階層に`'use client'`ディレクティブを置いておきます。
+TanStack Queryは内部的に`useContext`や`useEffect`などを使用しているため、TanStack Queryを使用するコンポーネントをまるっと`QueryClientProvider`でラップします。
 
 `QueryClientProvider`は`new`した`QueryClient`インスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにしてくれます。
-(ここでは一旦broadcastQueryClientの存在は無視してください)
+(ここでは一旦`broadcastQueryClient`の存在は無視してください)
 
 TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、propsのバケツリレーを防ぐことができていていいですね!
+
+⭐️SWRと比較のためフェッチのための処理の説明を追加する
 
 Personコンポーネントでユーザ名を更新してみます。
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-tanstack/hooks/useMutateUser.ts
@@ -282,8 +287,8 @@ Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-appl
 ##### 結局いつどれ使ったらいいの
 |  | App Router Cache | SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- |
-| Next.js v13 <= を使用している時 | RSCで⭕️ | RCCで⭕️  | RCCで⭕️ | 🔼 |
-| Next.js v13 > の時| ❌ | ⭕️ | ⭕️ | 🔼 |
+| App Routerを使用している時 | RSCで⭕️ | RCCで⭕️  | RCCで⭕️ | 🔼 |
+| それ以外| ❌ | ⭕️ | ⭕️ | 🔼 |
 
 * RSC: React Server Component
 * RCC: React Client Component

@@ -22,10 +22,13 @@ export default function RootLayout({
             width: "100vw",
             height: "100vh",
             display: "flex",
+            flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
+            gap: "2rem",
           }}
         >
+          <h1 className="text-3xl font-extrabold">This is App Router!</h1>
           {children}
         </main>
       </body>
