@@ -84,7 +84,7 @@ SWRのようなサードパーティ製のデータフェッチライブラリ�
 ### SWRを用いたデータフェッチの調査方法
 SWRを使用するため、先ほどと同様、階層最上位のコンポーネントに`'use client'`ディレクティブを付与しています。
 
-しかし、ここではデータ取得を行っておらず、各コンポーネントも`props`を持っていません。
+useEffectを使ったデータフェッチに比べて、ここではデータ取得を行っておらず、各コンポーネントも`props`を持っていません。
 その代わりに、データ取得のための`hooks`をいくつか追加しました。
 https://github.com/saku-1101/caching-swing/tree/main/src/app/prc-swr/hooks
 ![](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
