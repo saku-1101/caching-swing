@@ -9,8 +9,11 @@
 
 ## Repository
 以下は今回調査するにあたって用いたリポジトリです。
-https://github.com/saku-1101/caching-swing
+
+🔽クライアントサイドフェッチの調査に用いたリポジトリ
 https://github.com/saku-1101/caching-swing-pages
+🔽サーバーサイドフェッチの調査に用いたリポジトリ
+https://github.com/saku-1101/caching-swing
 
 ## useEffectを用いたデータフェッチ
 今回は、階層のトップレベルで`useEffect`を用いて、ページレンダリング時にデータ取得を行う方法を検証しました。
@@ -20,10 +23,11 @@ https://github.com/saku-1101/caching-swing-pages
 
 - propsのバケツリレーが起きてしまうことでコンポーネント間の依存が強くなる
 - 各コンポーネントでデータフェッチを行うようにすると無駄なネットワークトランザクションが発生する
-- データ取得中や更新中の状態管理(loading, validating, error...)がSWRやTanStack Queryを用いた時のように細かく行えない
+- データ取得中や更新中の状態管理(loading, validating, error...)がSWRやTanStack Queryを用いた時のように細かく行うのが難しい
 
 ### useEffectを用いたデータフェッチの調査
-https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/legacy-fetch/page.tsx#L15-L46
+早速、useEffectを用いてデータフェッチする処理を書いてみましょう。
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/legacy-fetch/index.tsx#L14-L44
 
 `useEffect`の依存配列を空にして、`useEffect`の発火が何にも依存しない・比較されない状態、つまり初期レンダリングの時にしか発火されない状態にし、第一引数内でデータフェッチ処理を行います。
 データは`useState`のset関数によってstateに保持されます。
@@ -31,56 +35,54 @@ https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5
 (※ここでPersonコンポーネントに渡している`setter props`が後から重要な役割を担います)
 
 子コンポーネントでユーザ名の更新をしてみましょう。
-(ここでは極力Next.js v14の機能を使わないことを前提として話を進めていくので、Server Actionsは使用しません。)
-https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/legacy-fetch/children/user.tsx#L13-L22
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/legacy-fetch/children/user.tsx#L7-L19
 
 `body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送ると、prismaを通してlocal postgres DBの値が更新されます。
 
 更新した値をUIに反映していきます。
-https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/legacy-fetch/children/user.tsx#L24-L27
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/legacy-fetch/children/user.tsx#L18
 ここで現在のデータ取得できる条件を思い出すと、**初期レンダリング時**でした。
-`router.reload()`をして再レンダリングをトリガーすることで、最新のデータがUIに反映されます。
+そのため、`router.reload()`をして再レンダリングをトリガーすることで、最新のデータがUIに反映します。
 
 ### 結果
 データ取得・更新のたびにすべてのデータが新しくフェッチされ、現状の実装では全てのコンポーネントの再レンダリングも起こります。
 
-![](https://storage.googleapis.com/zenn-user-upload/2dc5d1bde994-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/1f7f94abe3c8-20231117.gif)
 *useEffect fetch with Pages Router*
-
 
 余談ですが、App Routerで同様にuseEffectを用いて階層のトップレベルでデータをフェッチし、更新した場合の挙動です。
 
 動画ではuserのみ（更新処理を行なった部分のみ）の更新リクエストが発生していますが、これはApp Routerのキャッシュ機能によるものです。
 
-![](https://storage.googleapis.com/zenn-user-upload/6d9c9abeb651-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/2e49fbd2b529-20231117.gif)
 *useEffect fetch with App Router*
-::message
+:::message
 Pages Routerでは`next/router`から`useRouter`がインポートされていました。
 しかし、App Routerでは`useRouter`は`next/navigation`からのインポートとなり、仕様も異なります。
 App Routerでは`router.reload()`のように内部的に`window.location.reload()`をコールするようなメソッドは提供されていません。
 そこで、先ほど`props`として渡しておいた`useState`のset関数を子コンポーネントから呼び出すことによって親要素レベルからの再レンダリングを行っています。
 
 set関数がのちに説明する`mutate`の役割のようになっているイメージです。
-::
+:::
 
 ### リクエストの重複
-![useEffectを用いたデータフェッチ](https://storage.googleapis.com/zenn-user-upload/d5951d63eff3-20231116.png)
+![](https://storage.googleapis.com/zenn-user-upload/834f6a9c01aa-20231117.png)
 *fetch with useEffect*
 
 今回はトップの親コンポーネントで`useEffect`を使用して、意図的にリクエストを親にまとめ、データを子コンポーネントに`props`として配布するという形にしています。
 
 Personコンポーネントでデータの更新後に`router.reload()`でリロードをかけて再レンダリングを行い、親のuseEffect内の処理をもう一度行なっているのでネットワークトランザクションは合計3回です。
 
-しかし、もしそれぞれの子コンポーネントでuseEffectを使用してそれぞれのレンダリング時にデータを取得するような書き方をするとなると、別コンポーネントでのデータ取得は別物とみなされ、多くのトランザクションが発生することになります...
+しかし、もしそれぞれの子コンポーネントで`useEffect`を使用してそれぞれのレンダリング時にデータを取得するような書き方をするとなると、別コンポーネントでのデータ取得は別物とみなされ、多くのトランザクションが発生することになります...
 
 ## SWRを用いたデータフェッチ
 次に、SWRを用いてデータのフェッチ・更新を行うときの挙動を確認していきます。
 
 SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットとして
 - propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点
-- 個々のコンポーネントがデータフェッチの処理を含んでいても、無駄なネットワークトランザクションが発生しない点
+- 各コンポーネントでデータフェッチを行うようにしても無駄なネットワークトランザクションが発生しない点
 - レスポンスのキャッシュが行える点
-- 直感的に更新後の状態をUIに反映できる点
+- mutateを使用して直感的に更新後の状態をUIに反映できる点
 - データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点
 
 などが挙げられます。
@@ -90,40 +92,39 @@ SWRのようなサードパーティ製のデータフェッチライブラリ�
 
 ### SWRを用いたデータフェッチの調査方法
 useEffectを使ったデータフェッチに比べて、ここではデータ取得を行っておらず、各コンポーネントも`props`を持っていません。
-その代わりに、データ取得のための`hooks`をいくつか追加しました。
-https://github.com/saku-1101/caching-swing/tree/main/src/app/prc-swr/hooks
-![](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
-*/src/app/prc-swr/hooks*
-これらのhooksをそのデータが必要な各コンポーネントで呼び出してもらうことで、必要なデータ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
 
-https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/prc-swr/hooks/useGithub.ts#L5-L11
+その代わりに、データ取得のための`hooks`をいくつか追加しました。
+https://github.com/saku-1101/caching-swing-pages/tree/main/src/pages/prc-swr/hooks
+![](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
+*/src/pages/prc-swr/hooks*
+これらのhooksをそのデータが必要な各コンポーネントで呼び出してもらうことで、データ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
+
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-swr/hooks/useGithub.ts#L6-L10
 さらに、`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
 
 Personコンポーネントでユーザ名を更新してみましょう。
-https://github.com/saku-1101/caching-swing/blob/04538a768ad3cb5a7cc9098447c1ac6f32505d35/src/app/prc-swr/children/user.tsx#L8-L19
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-swr/children/user.tsx#L8-L19
 DB更新処理までは先ほどと同様、APIに`POST`リクエストを送信しているだけです。
 
 SWRではデータ更新の際に`mutate`メソッドを使用することで、第一引数に渡されたキーと同様のキーを持つリソースに対して再検証を発行 (データを期限切れとしてマークして再フェッチを発行する) できます。
 ここでは`/api/get/user`をキーとして持つリソース、つまり`useGetUser`内部で使用している`useSWR`に「そのデータ古いですよー」と伝えて再フェッチを促します。
 
 すると、`validation`がトリガーされ、最新のデータがフェッチされてUIに反映されます。
-![](https://storage.googleapis.com/zenn-user-upload/a56c4f8b9b1d-20231116.gif)
-*UIが最新のデータで更新されている様子*
 
 ### 結果
 先ほどのデータ更新時の再レンダリング範囲注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
-![](https://storage.googleapis.com/zenn-user-upload/25124dde8481-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/466947b9c275-20231117.gif)
 *SWRを使うと限定的な範囲で再レンダリングができる*
 
 また、ほかにもSWRにはデータを最新に保つ仕組みがいくつか備わっています。その一部を見てみましょう。
 
 #### Revalidate on Focus
 `window`にフォーカスが当たった場合に自動的に再検証が走り、最新のデータがフェッチされ、再レンダリングされます。
-![](https://storage.googleapis.com/zenn-user-upload/8dfcf5603698-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/d38bb10da027-20231117.gif)
 *SWR: Revalidate on Focus*
 
 #### Revalidate on Interval
-`window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔で再検証を走らせてデータ更新を行うことができます。
+`window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔でデータフェッチの問い合わせを行って再検証を走らせることができます。
 異なるデバイス間で定期的にデータ同期を行う際に便利です。
 ```diff:js useGetUser.ts
 import useSWR from "swr";
@@ -142,7 +143,7 @@ export const useGetUser = () => {
 };
 
 ```
-![](https://storage.googleapis.com/zenn-user-upload/c0e656740d7a-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/6356f5ee562c-20231117.gif)
 *SWR: Revalidate on Interval*
 
 ### リクエストの重複
@@ -153,8 +154,15 @@ SWRには重複排除の仕組みが備わっています。
 これにより、ユーザ情報を必要とするPersonコンポーネントとHeaderコンポーネントそれぞれで`useGetUser` hookをコールすることになるのですが、ネットワークトランザクションが2回起こることにならないのでしょうか？😶
 
 `useSWR`では同じキーを持ち、ほぼ同時期にレンダリングされるコンポーネントに関しては、リクエストは一つにまとめられます。
-![swrリクエストの重複](https://storage.googleapis.com/zenn-user-upload/8d261ba9c7db-20231116.png)
+ここでは
+- `/api/user/get` @ Header, Personコンポーネント
+- `/api/get/unstale/data` @ Header, Contentコンポーネント
+- `https://github.com` @ Header, Contetnコンポーネント
+
+と、6回のAPIコールを実装していました。
+![](https://storage.googleapis.com/zenn-user-upload/82dbe582f56a-20231117.png)
 *SWRを使うと重複したリクエストは排除される*
+しかし、実際は3回のネットワークトランザクションしか発生していません。
 
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
 
@@ -167,7 +175,8 @@ TanStack QueryもSWRと同様クライアントサイドキャッシュを利用
 [TanStack Query](https://tanstack.com/query/latest)
 
 ### TanStack Queryを用いたデータフェッチの調査
-https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/prc-tanstack/page.tsx#L10-L29
+まずは、初期設定です。
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-tanstack/index.tsx#L9-L27
 TanStack Queryは内部的に`useContext`や`useEffect`などを使用しているため、TanStack Queryを使用するコンポーネントをまるっと`QueryClientProvider`でラップします。
 
 `QueryClientProvider`は`new`した`QueryClient`インスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにしてくれます。
@@ -175,11 +184,13 @@ TanStack Queryは内部的に`useContext`や`useEffect`などを使用してい�
 
 TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、propsのバケツリレーを防ぐことができていていいですね!
 
-⭐️SWRと比較のためフェッチのための処理の説明を追加する
+TanStack Queryでも、データフェッチhooksをカスタムhooksに切り出します。
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-tanstack/hooks/useGithub.ts#L4-L18
+こうすることでデータフェッチhooksが再利用可能になり、各コンポーネントでデータフェッチが行えるので、データ取得の責務をコンポーネントに委譲することができてよいです。
 
 Personコンポーネントでユーザ名を更新してみます。
-https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-tanstack/hooks/useMutateUser.ts
-https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/prc-tanstack/children/user.tsx#L7-L16
+https://github.com/saku-1101/caching-swing-pages/blob/main/src/pages/prc-tanstack/hooks/useMutateUser.ts
+https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-tanstack/children/user.tsx#L7-L16
 TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、その`hooks`が更新・更新時の状態を管理します。
 
 `useMutation` hooksに注目してほしいのですが、これが存在することにより、TanStack Queryでは`mutation`という処理を行っているときの状態が管理できます。
@@ -197,7 +208,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 4. `useGetUser`が再検証を開始するとともに`isFetching`を返す（⏳loading...表示）
 5. `useGetUser`内の`useQuery`の`queryFn`の処理でデータの再フェッチを行う（⏳loading...表示）
 6. `queryFn`の処理が完了する（⏳loading...非表示）
-![](https://storage.googleapis.com/zenn-user-upload/9be6ad2bb790-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/2419b03dee5e-20231117.gif)
 *TanStack Queryでのデータ更新時の状態管理*
 
 ⭐️SWRを用いたときのデータ更新処理は
@@ -207,7 +218,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 4. `useGetUser`が再検証を開始するとともに`isValidating`を返す（⏳loading...表示）
 5. `useGetUser`内の`useSWR`の第二引数の処理でデータの再フェッチを行う（⏳loading...表示）
 6. 5の処理が完了する（⏳loading...非表示）
-![](https://storage.googleapis.com/zenn-user-upload/77d80b781381-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/ceb0c73f7d42-20231117.gif)
 *SWRでのデータ更新時の状態管理*
 
 となり、DB update処理中（API内部処理実行中）の状態を、TanStack Queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
@@ -222,17 +233,17 @@ v4までは`window`にフォーカスが当たった場合に自動的に再検�
 
 しかし、こちらの[PR](https://github.com/TanStack/query/pull/4805)により`focus`イベントで再検証が走ることのデメリットが議論された結果、v5からは`focus`イベントではなく`visibilitychange`によって自動的再検証が走るような仕様になっているようです。
 
-![](https://storage.googleapis.com/zenn-user-upload/bf7fe92de8a0-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/d7bf13fb32b3-20231117.gif)
 *現状focusで再検証が走るSWR - devtoolから戻ってきた時や、windowがクリックされたとき、別ディスプレイに行って戻ってきた時にも再検証が走る*
 
-![](https://storage.googleapis.com/zenn-user-upload/62696d85c3ed-20231116.gif)
-*visibilitychangeで再検証が走るTanStack Query*
+![](https://storage.googleapis.com/zenn-user-upload/506d0651fbd4-20231117.gif)
+*visibilitychangeで再検証が走るTanStack Query - 単にfocusでは再検証は走らない*
 
 `focus`で再検証が走ることはSWRでも議論されており、[PR](https://github.com/vercel/swr/pull/2672)も出ているので、将来的にはmergeされてTanStack Queryの仕様に近づくのだと思います。🏗️
 
 ### リクエストの重複
 こちらもSWR同様、リクエストをキーで管理しているので重複が排除されます。
-![tanstackリクエストの重複](https://storage.googleapis.com/zenn-user-upload/169e1a2cb75b-20231116.png)
+![](https://storage.googleapis.com/zenn-user-upload/ba40f7575e39-20231117.png)
 *TanStack Queryを使うと重複したリクエストは排除される*
 
 ## App Router cache
@@ -271,7 +282,7 @@ https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e
 
 ### 結果
 RSCのfetchを用いた時のデータ取得・更新の挙動です。
-![](https://storage.googleapis.com/zenn-user-upload/222f91481c64-20231116.gif)
+![](https://storage.googleapis.com/zenn-user-upload/f4631a74b0da-20231117.gif)
 *RSC, App Routerでのデータ取得*
 
 ### リクエストの重複
@@ -279,8 +290,8 @@ RSCのfetchを用いた時のデータ取得・更新の挙動です。
 Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いたれていた`Context Provider`の仕組みがキャッシュによって実現されているイメージです。
 
 しかし、リクエスト結果のキャッシュがインメモリのData Cacheストレージに残っており、それを再利用する場合は、ネットワークトランザクションさえ起こりません。
-![rscリクエストの重複](https://storage.googleapis.com/zenn-user-upload/59b68b7a218b-20231116.png)
-*インメモリキャッシュのおかげでいちいちData Sourceにアクセスしないため、Networkタブに何も表示されない*
+![](https://storage.googleapis.com/zenn-user-upload/403fb9f15fee-20231117.gif)
+*インメモリキャッシュのおかげでいちいちData Sourceにアクセスしないため、reloadしてもNetworkタブに何も表示されない*
 
 ## 結果
 以上の調査をまとめた結果です。
@@ -311,12 +322,12 @@ Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-appl
 
 まとめると、
 1. Next.jsなどのフレームワークを使用している場合は、組み込みのデータフェッチを利用する
-2. フレームワークを利用しない場合はSWRやTanStack Queryなど、クライアントサイドキャッシュの利用を検討する
+2. フレームワークを利用しない場合はSWRやTanStack Queryなど、クライアントサイドキャッシュを利用できるライブラリを検討する
 3. それ以外の場合・どちらも使えない場合はuseEffectで直接データフェッチをする
 
 となり、useEffectの出番は稀になりそうです。
 
-それぞれのデータフェッチ方法の個性を活かしつつ、敵最適所で使っていきたいとおもいます！
+それぞれのデータフェッチ方法の個性を活かしつつ、敵最適所で使っていきたいと思います！
 OSSいつもありがとう！🙌🏻
 
 ## 余談 - (TanStack Query)broadcastQueryClientという実験的な機能
