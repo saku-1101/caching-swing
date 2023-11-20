@@ -41,22 +41,22 @@ https://github.com/saku-1101/caching-swing
 それでは早速、useEffectを用いてデータフェッチする処理を書いてみましょう。
 
 ### useEffectを用いたデータフェッチの調査
-https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/effect-fetch/index.tsx#L10-L45
+https://github.com/saku-1101/caching-swing-csr/blob/a9b407e62e9f47138fd4add7e9e007f3724f3ad7/src/effect-fetch/index.tsx#L10-L65
 
 `useEffect`の依存配列を空にして、`useEffect`の発火が何にも依存しない・比較されない状態、つまり初期レンダリングの時にしか発火されない状態にし、第一引数内でデータフェッチ処理を行います。
 データは`useState`のset関数によってstateに保持されます。
 そのstateをデータが必要な各々のコンポーネントに`props`として渡していきます。
-(※ここでPersonコンポーネントに渡している`setter props`が後から重要な役割を担います)
+また、値更新処理に必要なハンドラも`form`を含むPersonコンポーネントに渡します。
 
-子コンポーネントでユーザ名の更新をしてみましょう。
-https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/effect-fetch/children/user.tsx#L8-L21
+Personコンポーネントでユーザ名の更新をしてみましょう。
+https://github.com/saku-1101/caching-swing-csr/blob/a9b407e62e9f47138fd4add7e9e007f3724f3ad7/src/effect-fetch/index.tsx#L32-L50
 
 `body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送ると、DBの値が更新されます。
 
 更新した値をUIに反映していきます。
-https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/effect-fetch/children/user.tsx#L19-L20
+https://github.com/saku-1101/caching-swing-csr/blob/a9b407e62e9f47138fd4add7e9e007f3724f3ad7/src/effect-fetch/index.tsx#L49
 ここで現在のデータ取得できる条件を思い出すと、**初期レンダリング時**でした。
-そのため、ここでは`window.location.reload();`をして再レンダリングをトリガーすることで、最新のデータがUIに反映します。
+そのため、ここではset関数を使用して再レンダリングをトリガーすることで、最新のデータをUIに反映させます。
 
 ### 結果
 データ取得・更新のたびにすべてのデータが新しくフェッチされ、今回の実装では全てのコンポーネントの再レンダリングも起こります。
