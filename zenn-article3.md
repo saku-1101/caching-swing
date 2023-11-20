@@ -21,7 +21,7 @@ Next.js Pages Routerでは標準でSSR機能が搭載されています。
 SSRをすると、サーバーサイドでページのpre-renderingが行われるため、パフォーマンス・SEOの両面で良い結果を出すことが期待できます。
 [Pre-rendering and Data Fetching](https://nextjs.org/learn-pages-router/basics/data-fetching/pre-rendering)
 [Rendering](https://nextjs.org/docs/pages/building-your-application/rendering)
-![](https://storage.googleapis.com/zenn-user-upload/8b09363de1b8-20231119.png)
+![SSRとCSRの比較](https://storage.googleapis.com/zenn-user-upload/8b09363de1b8-20231119.png)
 *SSRとCSRの比較*
 
 もちろん、Next.jsではSSRをしつつも、useEffectを使用してデータフェッチをクライアントサイドに寄せることができます。
@@ -79,10 +79,12 @@ export async function getServerSideProps() {
 サーバターミナルにデータ取得にかかった秒数が表示されるのか、ブラウザのコンソールタブに表示されるのかをみてみます。
 
 SSRのページをリロードしてデータを再取得してみます。
-![](https://storage.googleapis.com/zenn-user-upload/89abe6409ff0-20231119.gif)
+![ブラウザ](https://storage.googleapis.com/zenn-user-upload/89abe6409ff0-20231119.gif)
+*ブラウザコンソールの表示*
 ブラウザコンソールには何も表示されていないようです。
 localhostのターミナルはどうでしょうか？
-![](https://storage.googleapis.com/zenn-user-upload/0794ffbf606c-20231119.png)
+![ターミナル](https://storage.googleapis.com/zenn-user-upload/0794ffbf606c-20231119.png)
+*ターミナルの表示*
 こちらにデータ取得に`xxx ms`かかったとログが出ていました！
 きちんとサーバサイドフェッチできてますね🙌🏻
 
@@ -100,11 +102,12 @@ https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265ed
 
 ### 結果
 `getServerSideProps`を用いた時のデータ取得・更新の挙動です。
-![](https://storage.googleapis.com/zenn-user-upload/a10410d73f28-20231119.gif)
+![SSR data fetch](https://storage.googleapis.com/zenn-user-upload/a10410d73f28-20231119.gif)
 *SSR時にデータを取得しているので、データが注入された状態のHTMLのみが送られてくる*
 
 ### `getServerSideProps`の特徴
 `getServerSideProps`の利用が許可されているのはpageからのみで、それぞれの子コンポーネントが`getServerSideProps`をデータフェッチのために独立して使うということはないです。
+[When does getServerSideProps run](https://nextjs.org/docs/pages/building-your-application/data-fetching/get-server-side-props#when-does-getserversideprops-run)
 > getServerSideProps can only be exported from a page. You can’t export it from non-page files.
 
 したがって、pageの`getServerSideProps`で取得されたデータをpropsでバケツリレー式に子コンポーネントに渡していく形となります。（つまり、コンポーネントとデータの依存関係を剥がすことは難しそうです。）
@@ -131,10 +134,9 @@ Next.js v13以降でページレベルで`loading`を制御したい場合は`lo
 (※上記のRSCでは`Suspense`の動作を確認するために、意図的にsleep関数を仕込んでいます)
 
 また、`error bounday`に関しては、Reactからは`Suspense`のようにfunction componentとして提供されているものはないようです。
-コンポーネントごとにエラーの出し分けをしたい場合は、[公式](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)にもあるように、現状[react-error-boundary](https://github.com/bvaughn/react-error-boundary)を使うとよさそうです。
+コンポーネントごとにエラーの出し分けをしたい場合は、[React公式](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)にもあるように、現状[react-error-boundary](https://github.com/bvaughn/react-error-boundary)を使うとよさそうです。
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/error.tsx
 もしNext.js v13以降でページレベルで`error`を制御したい場合は、**Client Componentとして**`error.jsx/tsx`を`loading`と同様`page.jsx/tsx`と同階層に置くことで対応できます。
-
 
 それでは、Personコンポーネント内のformを用いてユーザ名を更新してみましょう。
 ここでは`Server Actions`を用いて更新処理を行います。(調査環境: Next.js v14.0.2)
@@ -149,8 +151,8 @@ https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e
 `Server Actions`でデータ更新後に`revalidateTag(tag);`を行うとNext.js組み込みのData Cacheストレージからそのタグに紐づけられたキャッシュが再検証されて最新のデータに置き換わります。
 
 ### 結果
-RSCのfetchを用いた時のデータ取得・更新の挙動です。
-![](https://storage.googleapis.com/zenn-user-upload/f4631a74b0da-20231117.gif)
+RSCのfetchを用いたときのデータ取得・更新の挙動です。
+![fetch in App Router](https://storage.googleapis.com/zenn-user-upload/f4631a74b0da-20231117.gif)
 *RSC, App Routerでのデータ取得*
 
 ### リクエストの重複
@@ -158,7 +160,7 @@ RSCのfetchを用いた時のデータ取得・更新の挙動です。
 Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いたれていた`Context Provider`の仕組みがキャッシュによって実現されているイメージです。
 
 さらに、リクエスト結果のキャッシュがインメモリのData Cacheストレージに残っており、それを再利用する場合は、ネットワークトランザクションさえ起こりません。
-![](https://storage.googleapis.com/zenn-user-upload/403fb9f15fee-20231117.gif)
+![In memory cache](https://storage.googleapis.com/zenn-user-upload/403fb9f15fee-20231117.gif)
 *インメモリキャッシュのおかげでいちいちData Sourceにアクセスしないため、reloadしてもNetworkタブに何も表示されない*
 
 ## 全体の結果
@@ -175,7 +177,7 @@ Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-appl
 | CSR | ❌ | ❌ | ⭕️  | ⭕️ | 🔼 |
 | SSR：各コンポーネントでデータフェッチを行う | ❌ | 各コンポーネントでのデータフェッチは想定されない(❌) | ⭕️ | ⭕️ | 🔼 |
 | SSR:SSR時にデータ取得 | ❌ | ⭕️（getServerSidePropsに限らず、該当SSRライブラリのAPIを使用） | ❌ | ❌ | ❌ |
-| Next.js App Router | ⭕️ | RSCを使うので使用しない(❌) | サーバサイドでデータフェッチができいない時（⭕️） | サーバサイドでデータフェッチができいない時（⭕️） | サーバサイドでデータフェッチができいない時（🔼） |
+| Next.js App Router | ⭕️ | RSCを使うので使用しない(❌) | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
 
 * RSC: React Server Component
 * RCC: React Client Component
