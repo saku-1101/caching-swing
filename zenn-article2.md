@@ -113,6 +113,7 @@ SWRには重複排除の仕組みが備わっています。
 しかし、実際は**3回**のネットワークトランザクションしか発生していません。
 
 また、データ更新を行なった時も、更新後にrevalidationしたキーの紐づくデータの再フェッチしか行いません。
+SWRでは1度取得したレスポンスはクライアントサイドキャッシュに保存され、次に同じリクエストを送る場合はリクエストを送らずにキャッシュからデータが返されます。
 >  SWR は、まずキャッシュからデータを返し（stale）、次にフェッチリクエストを送り（revalidate）、最後に最新のデータを持ってくるという戦略です。
 https://swr.vercel.app/ja
 
@@ -122,14 +123,14 @@ https://swr.vercel.app/ja
 
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
 
-## TanStack Queryを用いたデータフェッチ
+## TanStack Queryを用いたクライアントサイドフェッチ
 TanStack QueryもSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
-バンドルサイズはSWRの３倍ほどありますが、SWRよりも高機能です。
+バンドルサイズはSWRの３倍ほどありますが、Query Hooksの戻り値の種類が多かったり、Query Hooksが持っているoptionの数が多かったりとSWRよりも高機能です。
 
 そんなTanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
 
 [TanStack Query](https://tanstack.com/query/latest)
-
+* Query Hooks：SWR→ [useSWR](https://swr.vercel.app/ja/docs/api), TanStack Query→ [useQuery](https://tanstack.com/query/v4/docs/react/reference/useQuery)
 ### TanStack Queryを用いたデータフェッチの調査
 まずは、初期設定です。
 https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-tanstack/index.tsx#L9-L27
@@ -159,6 +160,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 
 再検証を発行されたリソース（ここではTanStack Queryの`useGetUser`）はデータの再フェッチを行い、そのときの状態は`useGetUser`の内部で用いられている`useQuery`から`isFetching`として受け取ることができます。
 
+#### SWRとTanStack Queryでのmutateの比較
 ⭐️まとめると、TanStack QueryでuseMutationを用いたときのデータ更新処理は
 1. `mutate`でデータ更新をトリガーする
 2. データ更新がトリガーされたら`isPending`を返す（Updating...表示）
@@ -182,7 +184,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 となり、DB update処理中（API内部処理実行中）の状態を、TanStack Queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
 
 ### 結果
-上記の動画より、TanStack QueryもSWRの時ように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。TanStack Queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
+少し脇道に逸れましたが、上記の動画より、TanStack QueryもSWRの時ように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。TanStack Queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
 
 また、TanStack Queryにもデータを最新に保つ仕組みが備わっています。Window Focus RefetchingについてSWRと比較して見てみましょう。
 
