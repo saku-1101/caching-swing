@@ -1,8 +1,4 @@
-# Reactのさまざまなデータフェッチ方法を比較して理解して正しく使用する - SWR・TanStack Query編
-
-「Reactのさまざまなデータフェッチ方法を比較して理解して正しく使用する」シリーズの2記事目です。
-
-今回は「SWR・TanStack Queryを用いたデータフェッチ」について理解していきます。
+「Reactのさまざまなデータフェッチ方法を比較して理解して正しく使用する」シリーズの2記事目です。今回は「SWR・TanStack Queryを用いたデータフェッチ」について理解していきます。
 1. イントロ+useEffectを用いたデータフェッチ
 2. SWR・TanStack Queryを用いたデータフェッチ ← 👀この記事
 3. App Routerでのデータフェッチ+まとめ
@@ -49,12 +45,10 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 それでは、Personコンポーネントでユーザ名を更新してみましょう。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/children/user.tsx#L5-L20
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGetUser.ts#L4-L24
-DB更新処理までは前回同様、ElysiaサーバのAPIに`POST`リクエストを送信しているだけです。
+DB更新処理までは前回同様、`POST`リクエストを送信しているだけです。
 
 SWRではデータ更新の際に`mutate`メソッドを使用することで同様のキーを持つリソースに対して再検証を発行 (データを期限切れとしてマークして再フェッチを発行) できます。
-ここでは`mutate`メソッドが`useGetUser`内の`useSWR`から発行されたものですので、`/api/get/user`をキーとして持つリソース、つまり`useGetUser`内部で使用している`useSWR`に「そのデータ古いですよー」と伝えて再フェッチを促します。
-
-すると、`validation`がトリガーされ、最新のデータがフェッチされてUIに反映されます。
+ここでは`mutate`メソッドが`useGetUser`内の`useSWR`から発行されたものですので、`/api/get/user`をキーとして持つリソース、つまり`useGetUser`内部で使用している`useSWR`に「そのデータ古いですよー」と伝えて再フェッチを促します。すると、`validation`がトリガーされ、最新のデータがフェッチされてUIに反映されます。
 
 ### 結果
 先ほどのデータ更新時の再レンダリング範囲注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
@@ -69,8 +63,7 @@ SWRではデータ更新の際に`mutate`メソッドを使用することで同
 *SWR: Revalidate on Focus*
 
 #### Revalidate on Interval
-`window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔でデータフェッチの問い合わせを行って再検証を走らせることができます。
-異なるデバイス間で定期的にデータ同期を行う際に便利です。
+`window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔でデータフェッチの問い合わせを行って再検証を走らせることができます。異なるデバイス間で定期的にデータ同期を行う際に便利です。
 ```diff:js useGetUser.ts
 export const useGetUser = () => {
   const url = "/api/get/user";
@@ -112,8 +105,7 @@ SWRには重複排除の仕組みが備わっています。
 *SWRを使うと重複したリクエストは排除される*
 しかし、実際は**3回**のネットワークトランザクションしか発生していません。
 
-また、データ更新を行なった時も、更新後にrevalidationしたキーの紐づくデータの再フェッチしか行いません。
-SWRでは1度取得したレスポンスはクライアントサイドキャッシュに保存され、次に同じリクエストを送る場合はリクエストを送らずにキャッシュからデータが返されます。
+また、データ更新を行なったときも、更新後にrevalidationしたキーの紐づくデータの再フェッチしか行いません。SWRでは1度取得したレスポンスはクライアントサイドキャッシュに保存され、次に同じリクエストを送る場合はリクエストを送らずにキャッシュからデータが返される使用になっているからです。
 >  SWR は、まずキャッシュからデータを返し（stale）、次にフェッチリクエストを送り（revalidate）、最後に最新のデータを持ってくるという戦略です。
 https://swr.vercel.app/ja
 
@@ -139,9 +131,9 @@ TanStack Queryは内部的に`useContext`や`useEffect`などを使用してい�
 `QueryClientProvider`は`new`した`QueryClient`インスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにしてくれます。
 (ここでは一旦`broadcastQueryClient`の存在は無視してください)
 
-TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、propsのバケツリレーを防ぐことができていていいですね!
+TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、`props`のバケツリレーを防ぐことができていていいですね!
 
-TanStack Queryでも、データフェッチhooksをカスタムhooksに切り出します。
+TanStack Queryでも、データフェッチをカスタムhooksに切り出します。
 https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-tanstack/hooks/useGithub.ts#L4-L18
 こうすることでデータフェッチhooksが再利用可能になり、各コンポーネントでデータフェッチが行えるので、データ取得の責務をコンポーネントに委譲することができてよいです。
 
@@ -152,11 +144,9 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 
 ここから少し細かい話に入ります。
 
-`useMutation` hooksに注目してほしいのですが、これが存在することにより、TanStack Queryでは`mutation`という処理を行っているときの状態が管理できます。
+`useMutation` hooksに注目してほしいのですが、これが存在することにより、TanStack Queryでは`mutation`という処理を行っているときの状態が管理できます。つまり、`mutate`が使われたとき＝**データ更新処理が発火したときから**`isPending`という状態を受け取ることができます。
 
-つまり、`mutate`が使われたとき＝**データ更新処理が発火したときから**`isPending`という状態を受け取ることができます。
-
-そして、データ更新が正常に行われると、`onSuccess`でその状態を受け取り、`queryClient.invalidateQueries({ queryKey: ["/api/get/user"] });`にて`/api/get/user`をキーにもつリソースの再検証を発行します。
+データ更新が正常に行われると、`onSuccess`でその状態を受け取り、`queryClient.invalidateQueries({ queryKey: ["/api/get/user"] });`にて`/api/get/user`をキーにもつリソースの再検証を発行します。
 
 再検証を発行されたリソース（ここではTanStack Queryの`useGetUser`）はデータの再フェッチを行い、そのときの状態は`useGetUser`の内部で用いられている`useQuery`から`isFetching`として受け取ることができます。
 
@@ -184,7 +174,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 となり、DB update処理中（API内部処理実行中）の状態を、TanStack Queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
 
 ### 結果
-少し脇道に逸れましたが、上記の動画より、TanStack QueryもSWRの時ように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。TanStack Queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
+少し脇道に逸れましたが、上記の動画より、TanStack QueryもSWRのように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。TanStack Queryもキーによってデータの取得・更新処理を行うか否かを管理しているからです。
 
 また、TanStack Queryにもデータを最新に保つ仕組みが備わっています。Window Focus RefetchingについてSWRと比較して見てみましょう。
 
@@ -194,7 +184,7 @@ v4までは`window`にフォーカスが当たった場合に自動的に再検�
 しかし、こちらの[PR](https://github.com/TanStack/query/pull/4805)により`focus`イベントで再検証が走ることのデメリットが議論された結果、v5からは`focus`イベントではなく`visibilitychange`によって自動的再検証が走るような仕様になっているようです。
 
 ![現状focusで再検証が走るSWR](https://storage.googleapis.com/zenn-user-upload/cf1177391cec-20231119.gif)
-*現状focusで再検証が走るSWR - devtoolから戻ってきた時や、windowがクリックされたとき、別ディスプレイに行って戻ってきた時にも再検証が走る*
+*現状focusで再検証が走るSWR - devtoolから戻ってきたときや、windowがクリックされたとき、別ディスプレイに行って戻ってきたときにも再検証が走る*
 
 ![visibilitychangeで再検証が走るTanStack Query](https://storage.googleapis.com/zenn-user-upload/b50940c18a1f-20231119.gif)
 *visibilitychangeで再検証が走るTanStack Query - 単にfocusでは再検証は走らない*
@@ -214,13 +204,13 @@ SWRやTanStack Queryのサードパティー製のフェッチライブラリを
 
 Reactのクライアントサイドでデータをフェッチする手段として最有力の候補として持っておきたいですね🌟
 
-次回は、Reactのサーバーサイドでデータをフェッチする方法としてReact Server ComponentをNext.js App Routerで使用して理解していく記事です。
+次回は、Reactのサーバーサイドでデータをフェッチする方法の代表として[Next.js Pages Routerでのデータフェッチ・Next.js App RouterでReact Server Componentsを使用してのデータフェッチ](https://zenn.dev/cybozu_frontend/articles/21a924a294d869)を理解していく記事です。
 
 
 ## 余談 - (TanStack Query)broadcastQueryClientという実験的な機能
-TanStack Queryが`window`にフォーカスが当たった時ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
+TanStack Queryが`window`にフォーカスが当たった場合ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
 
-以前TanStack Queryを使用した時は、`window`フォーカスで再検証が行われていたため、今回の調査の時に`window`を二つ開いて一つの`window`でデータを更新した時、もう一つの`window`に戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
+以前TanStack Queryを使用したときは、`window`フォーカスで再検証が行われていたため、今回の調査の時に`window`を二つ開いて一つの`window`でデータを更新した時、もう一つの`window`に戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
 
 https://github.com/TanStack/query/discussions/6364
 
