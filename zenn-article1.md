@@ -51,7 +51,7 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 子コンポーネントでユーザ名の更新をしてみましょう。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/effect-fetch/children/user.tsx#L8-L21
 
-`body`に`form`からのデータを付与したPOSTリクエストをElysiaJSサーバの`/api/update/user`に送ると、prismaを通してローカルPostgres DBの値が更新されます。
+`body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送ると、DBの値が更新されます。
 
 更新した値をUIに反映していきます。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/effect-fetch/children/user.tsx#L19-L20
