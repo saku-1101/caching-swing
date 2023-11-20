@@ -70,7 +70,7 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 
 動画ではuserのみ（更新処理を行なった部分のみ）の更新リクエストが発生していますが、これはで[後に](https://zenn.dev/cybozu_frontend/articles/21a924a294d869)触れるApp Routerのキャッシュ機能によるものです。
 
-![](https://storage.googleapis.com/zenn-user-upload/2e49fbd2b529-20231117.gif)
+![useEffect fetch with App Router](https://storage.googleapis.com/zenn-user-upload/2e49fbd2b529-20231117.gif)
 *useEffect fetch with App Router*
 
 App RouterでuseEffectを使用した場合のコード例は以下のようになります。
