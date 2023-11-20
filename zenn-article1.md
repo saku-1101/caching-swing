@@ -79,6 +79,14 @@ https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5
 set関数がreloadや、のちに[SWRやTanStackの記事](https://zenn.dev/cybozu_frontend/articles/a735baacc09c6a)で説明する`mutate`の役割を担っているイメージです。
 :::
 
+このように、React + Viteの時とApp Routerの時でどちらも
+1. `body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送る
+2. set関数を用いて再レンダリングをトリガーし、最新の状態をUIに反映する
+という実装を行いました。
+
+しかし、リクエストの挙動としてはReact + Viteの場合はユーザ名を更新すると更新のリクエストと全てのデータ取得のリクエストが送信されていたのに対し、
+App Routerの時では更新のリクエストしか送信されていないことがわかります。
+
 ### リクエストの重複
 ![](https://storage.googleapis.com/zenn-user-upload/88c95335b24a-20231119.png)
 *fetch with useEffect*
