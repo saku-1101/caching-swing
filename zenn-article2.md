@@ -38,7 +38,7 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 
 その代わりに、データ取得のための`hooks`をいくつか追加しました。
 https://github.com/saku-1101/caching-swing-csr/tree/main/src/prc-swr/hooks
-![](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
+![/src/prc-swr/hooks](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
 */src/prc-swr/hooks*
 これらのhooksをそのデータが必要な各コンポーネントで呼び出してもらうことで、データ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
 
@@ -58,14 +58,14 @@ SWRではデータ更新の際に`mutate`メソッドを使用することで同
 
 ### 結果
 先ほどのデータ更新時の再レンダリング範囲注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
-![](https://storage.googleapis.com/zenn-user-upload/13334e1f67c6-20231119.gif)
+![SWRを使うと限定的な範囲で再レンダリングができる](https://storage.googleapis.com/zenn-user-upload/13334e1f67c6-20231119.gif)
 *SWRを使うと限定的な範囲で再レンダリングができる*
 
 また、ほかにもSWRにはデータを最新に保つ仕組みがいくつか備わっています。その一部を見てみましょう。
 
 #### Revalidate on Focus
 `window`にフォーカスが当たった場合に自動的に再検証が走り、最新のデータがフェッチされ、再レンダリングされます。
-![](https://storage.googleapis.com/zenn-user-upload/bac2eca6c17e-20231119.gif)
+![SWR: Revalidate on Focus](https://storage.googleapis.com/zenn-user-upload/bac2eca6c17e-20231119.gif)
 *SWR: Revalidate on Focus*
 
 #### Revalidate on Interval
@@ -91,7 +91,7 @@ export const useGetUser = () => {
 };
 
 ```
-![](https://storage.googleapis.com/zenn-user-upload/0bc943523854-20231119.gif)
+![SWR: Revalidate on Interval](https://storage.googleapis.com/zenn-user-upload/0bc943523854-20231119.gif)
 *SWR: Revalidate on Interval*
 
 ### リクエストの重複
@@ -108,7 +108,7 @@ SWRには重複排除の仕組みが備わっています。
 - `https://github.com` @ Header, Contetnコンポーネント
 
 と、6回のAPIコールを実装していました。
-![](https://storage.googleapis.com/zenn-user-upload/94e4fe38424e-20231119.png)
+![SWRを使うと重複したリクエストは排除される](https://storage.googleapis.com/zenn-user-upload/94e4fe38424e-20231119.png)
 *SWRを使うと重複したリクエストは排除される*
 しかし、実際は**3回**のネットワークトランザクションしか発生していません。
 
@@ -118,7 +118,7 @@ SWRでは1度取得したレスポンスはクライアントサイドキャッ�
 https://swr.vercel.app/ja
 
 したがって、上でユーザ名を更新した時に起こるトランザクションは新しいuser`POST`と`GET`の**2回**のみになり、githubやrandomNumberの再フェッチは行われません。
-![](https://storage.googleapis.com/zenn-user-upload/6d52610411d8-20231119.png)
+![SWRを使うと再検証されるデータのみ再フェッチされ、あとはキャッシュから返される](https://storage.googleapis.com/zenn-user-upload/6d52610411d8-20231119.png)
 *SWRを使うと再検証されるデータのみ再フェッチされ、あとはキャッシュから返される*
 
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
@@ -168,7 +168,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 4. `useGetUser`が再検証を開始するとともに`isFetching`を返す（⏳loading...表示）
 5. `useGetUser`内の`useQuery`の`queryFn`の処理でデータの再フェッチを行う（⏳loading...表示）
 6. `queryFn`の処理が完了する（⏳loading...非表示）
-![](https://storage.googleapis.com/zenn-user-upload/12ef25c872fc-20231119.gif)
+![TanStack Queryでのデータ更新時の状態管理](https://storage.googleapis.com/zenn-user-upload/12ef25c872fc-20231119.gif)
 *TanStack Queryでのデータ更新時の状態管理*
 
 ⭐️SWRを用いたときのデータ更新処理は
@@ -178,7 +178,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 4. `useGetUser`が再検証を開始するとともに`isValidating`を返す（⏳loading...表示）
 5. `useGetUser`内の`useSWR`の第二引数の処理でデータの再フェッチを行う（⏳loading...表示）
 6. 5の処理が完了する（⏳loading...非表示）
-![](https://storage.googleapis.com/zenn-user-upload/13334e1f67c6-20231119.gif)
+![SWRでのデータ更新時の状態管理](https://storage.googleapis.com/zenn-user-upload/13334e1f67c6-20231119.gif)
 *SWRでのデータ更新時の状態管理*
 
 となり、DB update処理中（API内部処理実行中）の状態を、TanStack Queryはwatchできるのに対し、SWRではその機能は提供されていないということになります。
@@ -193,17 +193,17 @@ v4までは`window`にフォーカスが当たった場合に自動的に再検�
 
 しかし、こちらの[PR](https://github.com/TanStack/query/pull/4805)により`focus`イベントで再検証が走ることのデメリットが議論された結果、v5からは`focus`イベントではなく`visibilitychange`によって自動的再検証が走るような仕様になっているようです。
 
-![](https://storage.googleapis.com/zenn-user-upload/cf1177391cec-20231119.gif)
+![現状focusで再検証が走るSWR](https://storage.googleapis.com/zenn-user-upload/cf1177391cec-20231119.gif)
 *現状focusで再検証が走るSWR - devtoolから戻ってきた時や、windowがクリックされたとき、別ディスプレイに行って戻ってきた時にも再検証が走る*
 
-![](https://storage.googleapis.com/zenn-user-upload/b50940c18a1f-20231119.gif)
+![visibilitychangeで再検証が走るTanStack Query](https://storage.googleapis.com/zenn-user-upload/b50940c18a1f-20231119.gif)
 *visibilitychangeで再検証が走るTanStack Query - 単にfocusでは再検証は走らない*
 
 `focus`で再検証が走ることはSWRでも議論されており、[PR](https://github.com/vercel/swr/pull/2672)も出ているので、将来的にはmergeされてTanStack Queryの仕様に近づくのだと思います。🏗️
 
 ### リクエストの重複
 こちらもSWR同様、リクエストをキーで管理しているので重複が排除されます。
-![](https://storage.googleapis.com/zenn-user-upload/53feaf138836-20231119.png)
+![TanStack Queryを使うと重複したリクエストは排除される](https://storage.googleapis.com/zenn-user-upload/53feaf138836-20231119.png)
 *TanStack Queryを使うと重複したリクエストは排除される*
 
 ***
@@ -258,7 +258,7 @@ export default function TanstackPage() {
 }
 
 ```
-![](https://storage.googleapis.com/zenn-user-upload/75805c98ad7d-20231119.gif)
+![片方のwindowで更新をかけると、同期的にもう片方のwindowでも値が変更される](https://storage.googleapis.com/zenn-user-upload/75805c98ad7d-20231119.gif)
 *片方のwindowで更新をかけると、同期的にもう片方のwindowでも値が変更される*
 
 動作環境：
