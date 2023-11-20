@@ -76,11 +76,6 @@ https://github.com/saku-1101/caching-swing-csr/blob/a9b407e62e9f47138fd4add7e9e0
 App RouterでuseEffectを使用した場合のコード例は以下のようになります。
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/legacy-fetch/children/user.tsx#L12-L27
 :::message
-Pages Routerでは`next/router`から`useRouter`がインポートされていました。
-しかし、App Routerでは`useRouter`は`next/navigation`からのインポートとなり、仕様も異なります。
-App Routerでは`router.reload()`のように内部的に`window.location.reload()`をコールするようなメソッドは提供されていません。
-そこで、`props`として渡しておいた`useState`のset関数が子コンポーネントからの再レンダリングトリガーの役割を担います。
-
 set関数がreloadや、のちに[SWRやTanStackの記事](https://zenn.dev/cybozu_frontend/articles/a735baacc09c6a)で説明する`mutate`の役割を担っているイメージです。
 :::
 
