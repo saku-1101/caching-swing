@@ -61,25 +61,23 @@ https://github.com/saku-1101/caching-swing-csr/blob/a9b407e62e9f47138fd4add7e9e0
 
 ***
 
-完全に余談ですが、以下はApp Routerで同様にuseEffectを用いて階層のトップレベルでデータをフェッチし、更新した場合の挙動です。
+完全に余談ですが、以下はリロードにより更新後の処理をした場合の挙動です。
 
-動画ではuserのみ（更新処理を行なった部分のみ）の更新リクエストが発生していますが、これは後に触れる[App Routerのキャッシュ機能](https://zenn.dev/cybozu_frontend/articles/21a924a294d869)によるものです。
+![useEffect fetch reload](https://storage.googleapis.com/zenn-user-upload/13e9b1e14bdf-20231122.gif)
+*useEffect fetch with Reload*
 
-![useEffect fetch with App Router](https://storage.googleapis.com/zenn-user-upload/2e49fbd2b529-20231117.gif)
-*useEffect fetch with App Router*
-
-App RouterでuseEffectを使用した場合のコード例は以下のようになります。
-https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/legacy-fetch/children/user.tsx#L12-L27
-:::message
-set関数がreloadや、のちに[SWRやTanStackの記事](https://zenn.dev/cybozu_frontend/articles/a735baacc09c6a)で説明する`mutate`の役割を担っているイメージです。
-:::
-
-このように、React + ViteのときとApp Routerのときどちらも
+以下はデータ更新処理のコードです。
+https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/effect-fetch/children/user.tsx#L7-L21
 1. `body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送る
-2. set関数を用いて再レンダリングをトリガーし、最新の状態をUIに反映する
-という実装を行いました。
+2. 再レンダリングをトリガーし、最新の状態をUIに反映する
 
-しかし、リクエストの挙動としてはReact + Viteの場合はユーザ名を更新すると更新のリクエストと全てのデータ取得のリクエストが送信されていたのに対し、App Routerの時では更新のリクエストしか送信されていないことがわかります。
+という実装の流れは先ほどと変わりません。
+
+しかし、リロードを呼び出して再レンダリングをトリガーしてしまうと、初期レンダリングが再度走るため、`useEffect`の内部処理がもう一度実行されてしまいます。
+したがって、特別な場合を除いては、set関数などを利用して再レンダリングをトリガーするようにしたいです。
+:::message
+のちに説明する[SWRやTanStackの記事](https://zenn.dev/cybozu_frontend/articles/a735baacc09c6a)では`mutate`が再レンダリングをトリガーする役割となります。
+:::
 
 ### リクエストの重複
 ![fetch with useEffect](https://storage.googleapis.com/zenn-user-upload/88c95335b24a-20231119.png)
