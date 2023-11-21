@@ -47,7 +47,7 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGetUser.ts#L4-L24
 DB更新処理までは前回同様、`POST`リクエストを送信しているだけです。
 
-SWRではデータ更新の際に`mutate`メソッドを使用することで同様のキーを持つリソースに対して再検証を発行 (データを期限切れとしてマークして再フェッチを発行) できます。
+SWRではデータ更新の際に`mutate`メソッドを使用することで同一のキーを持つリソースに対して再検証を発行 (データを期限切れとしてマークして再フェッチを発行) できます。
 ここでは`mutate`メソッドが`useGetUser`内の`useSWR`から発行されたものですので、`/api/get/user`をキーとして持つリソース、つまり`useGetUser`内部で使用している`useSWR`に「そのデータ古いですよー」と伝えて再フェッチを促します。すると、`validation`がトリガーされ、最新のデータがフェッチされてUIに反映されます。
 
 ### 結果
