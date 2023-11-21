@@ -64,7 +64,7 @@ SWRではデータ更新の際に`mutate`メソッドを使用することで同
 
 #### Revalidate on Interval
 `window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔でデータフェッチの問い合わせを行って再検証を走らせることができます。異なるデバイス間で定期的にデータ同期を行う際に便利です。
-```diff:js useGetUser.ts
+```diff ts:useGetUser.ts
 export const useGetUser = () => {
   const url = "/api/get/user";
   const { mutate, data, error, isLoading, isValidating } = useSWR(
