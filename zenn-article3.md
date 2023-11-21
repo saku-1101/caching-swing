@@ -148,7 +148,7 @@ Server Actionsの細かな説明は割愛しますが、`/app/api`内部でし�
 
 ここで注目したいのが`revalidateTag("user");`の部分です。
 https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e9b3de3f5/src/app/prc-fetch/actions/handleUpdateUserName.ts#L14
-https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e9b3de3f5/src/app/prc-fetch/children/form-output.tsx#L6-L9
+https://github.com/saku-1101/caching-swing/blob/a5250ba30e0b790a4fdfa358444a520ca2e8c2b5/src/app/prc-fetch/children/form-output.tsx#L6-L8
 `fetch`の際のoptionとして`{ next: { tags: [tag] } }`が渡されたものに関しては、これがデータの再検証の際のキャッシュのタグとして紐付けられます。
 Server Actionsでデータ更新後に`revalidateTag(tag);`を行うとNext.js組み込みのData Cacheストレージからそのタグに紐づけられたキャッシュが再検証されて最新のデータに置き換わります。
 
