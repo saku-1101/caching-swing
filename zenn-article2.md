@@ -36,7 +36,7 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 https://github.com/saku-1101/caching-swing-csr/tree/main/src/prc-swr/hooks
 ![/src/prc-swr/hooks](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
 */src/prc-swr/hooks*
-これらのhooksをそのデータが必要な各コンポーネントで呼び出してもらうことで、データ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
+これらのhooksをそのデータを必要とする各コンポーネントから呼び出してもらうことで、データ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
 
 以下は`useSWR`を使用したデータフェッチのためのカスタムhooksの一例です。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGithub.ts#L4-L12
