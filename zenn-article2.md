@@ -40,7 +40,7 @@ https://github.com/saku-1101/caching-swing-csr/tree/main/src/prc-swr/hooks
 
 以下は`useSWR`を使用したデータフェッチのためのカスタムhooksの一例です。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGithub.ts#L4-L12
-`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
+`useSWR()`は`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
 
 それでは、Personコンポーネントでユーザ名を更新してみましょう。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/children/user.tsx#L5-L20
