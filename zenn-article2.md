@@ -116,7 +116,7 @@ https://swr.vercel.app/ja
 この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
 
 ## TanStack Queryを用いたクライアントサイドフェッチ
-TanStack QueryもSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
+[TanStack Query](https://tanstack.com/query/latest)もSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
 バンドルサイズはSWRの３倍ほどありますが、Query Hooksの戻り値の種類が多かったり、Query Hooksが持っているoptionの数が多かったりとSWRよりも高機能です。
 
 そんなTanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
