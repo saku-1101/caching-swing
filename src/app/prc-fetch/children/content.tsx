@@ -5,7 +5,7 @@ export default async function Content() {
   const data = await fetcher({
     url: "https://api.github.com/repos/vercel/next.js",
     headers: {
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_GITHUB_TOKEN}`,
+      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
     },
   });
   const randomNumber = await fetcher({

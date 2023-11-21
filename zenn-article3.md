@@ -1,5 +1,3 @@
-# Reactのさまざまなデータフェッチ方法を比較して理解して正しく使用する - SSR + App Router Cache編
-
 「Reactのさまざまなデータフェッチ方法を比較して理解して正しく使用する」シリーズの3記事目、最終記事です🌟
 
 今回は「Pages RouterとApp Routerでのデータフェッチ」についてです。
@@ -24,14 +22,14 @@ SSRをすると、サーバーサイドでページのpre-renderingが行われ�
 ![SSRとCSRの比較](https://storage.googleapis.com/zenn-user-upload/8b09363de1b8-20231119.png)
 *SSRとCSRの比較*
 
-もちろん、Next.jsではSSRをしつつも、useEffectを使用してデータフェッチをクライアントサイドに寄せることができます。
+もちろん、Next.jsではSSRをしつつも、useEffectなどを使用してデータフェッチをクライアントサイドに寄せることができます。
 
 しかし、クライアントサイドからデータフェッチを行うよりも、サーバサイドからデータフェッチを行った方がSEOやパフォーマンスの面では優れます。（データソースに近い・ブラウザよりもサーバのスペックの方がいいという前提で）
 
 そのため、Next.jsではSSR時に同時にサーバサイドでデータ取得まで行い、初期データが注入されたHTML(+HydrationのためのJS)をブラウザに返却する機能が備わっています。
 
 ### Pages Router(SSR)でのデータフェッチの調査
-Next.js Pages Router環境で調査を行います。
+Next.js Pages Router環境で調査を行っていきます💫
 
 Next.jsではSSR時に初期データの注入は、`getServerSideProps`という非同期の関数を`export`することによって実現できます。
 https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265edf989ecf2e74d7e/src/pages/ssr-fetch/index.tsx#L19-L72
@@ -49,7 +47,7 @@ https://nextjs.org/docs/pages/building-your-application/data-fetching/get-server
 const fetcher = (url: string) =>
   fetch(url, {
     headers: {
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_GITHUB_TOKEN}`,
+      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
     },
   }).then((res) => res.json())
   
@@ -79,7 +77,7 @@ export async function getServerSideProps() {
 サーバターミナルにデータ取得にかかった秒数が表示されるのか、ブラウザのコンソールタブに表示されるのかをみてみます。
 
 SSRのページをリロードしてデータを再取得してみます。
-![ブラウザ](https://storage.googleapis.com/zenn-user-upload/89abe6409ff0-20231119.gif)
+![ブラウザ](https://storage.googleapis.com/zenn-user-upload/877bd7e91f8f-20231121.gif)
 *ブラウザコンソールの表示*
 ブラウザコンソールには何も表示されていないようです。
 localhostのターミナルはどうでしょうか？
@@ -92,9 +90,9 @@ localhostのターミナルはどうでしょうか？
 
 また、ネットワークスロットリングをしても、サーバ側でデータ取得の処理をしているのでその影響を受けません。（レンダリング後のHTMLをDLする時はその限りではありません）
 
-それでは、Personコンポーネントでユーザ名を更新してみましょう。
+それでは、Personコンポーネントでユーザ名を更新してみましょう🤾🏻‍♀️
 https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265edf989ecf2e74d7e/src/pages/ssr-fetch/children/user.tsx#L6-L19
-`body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送ると、prismaを通してローカルpostgres DBの値が更新されます。通常通りです。
+`body`に`form`からのデータを付与したPOSTリクエストを`/api/update/user`に送ると、DBの値が更新されます。通常通りです。
 
 更新したデータをUIに反映します。
 https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265edf989ecf2e74d7e/src/pages/ssr-fetch/children/user.tsx#L18
@@ -159,38 +157,43 @@ RSCのfetchを用いたときのデータ取得・更新の挙動です。
 #### Network Memorization
 Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いたれていた`Context Provider`の仕組みがキャッシュによって実現されているイメージです。
 
-さらに、リクエスト結果のキャッシュがインメモリのData Cacheストレージに残っており、それを再利用する場合は、ネットワークトランザクションさえ起こりません。
-![In memory cache](https://storage.googleapis.com/zenn-user-upload/403fb9f15fee-20231117.gif)
-*インメモリキャッシュのおかげでいちいちData Sourceにアクセスしないため、reloadしてもNetworkタブに何も表示されない*
+さらに、[Router Cache](https://nextjs.org/docs/app/building-your-application/caching#router-cache)という機能により、各ルートへのリクエスト結果がインメモリのクライアントサイドストレージにキャッシュされているため、次の描画までの時間([INP](https://web.dev/articles/inp?hl=ja))も削減されます。
+異なるページを行き来すると、キャッシュされていたRSC payloadが、独自のデータフォーマットで返却されていることがわかります。
+![クライアントサイドインメモリキャッシュ](https://storage.googleapis.com/zenn-user-upload/6c610dd40f0a-20231121.png)
+*クライアントサイドインメモリキャッシュのおかげでセッション期間中は都度サーバにアクセスしない*
+
+このほかにも、多くのキャッシュの仕組みによってNext.js App Routerでのデータフェッチは最適化されています。
+https://nextjs.org/docs/app/building-your-application/caching
 
 ## 全体の結果
-今回の３シリーズの調査をまとめた結果です。
+今回の３シリーズの調査をまとめた結果です✉️
 
 ### フェッチの分類
-| App Router Cache | getServerSideProps | SWR | TanStack Query | useEffect |
+| RSC(in App Router) | getServerSideProps | SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- |
 | サーバサイドフェッチ | サーバサイドフェッチ | クライアントサイドフェッチ  | クライアントサイドフェッチ | クライアントサイドフェッチ |
 
+* RSC: React Server Component
+
 ### 結局いつどれ使ったらいいの
-|  | App Router Cache | getServerSideProps | SWR | TanStack Query | useEffect |
+|  | RSC(in App Router) | getServerSideProps | SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- | ---- |
 | CSR | ❌ | ❌ | ⭕️  | ⭕️ | 🔼 |
-| SSR：各コンポーネントでデータフェッチを行う | ❌ | 各コンポーネントでのデータフェッチは想定されない(❌) | ⭕️ | ⭕️ | 🔼 |
-| SSR:SSR時にデータ取得 | ❌ | ⭕️（getServerSidePropsに限らず、該当SSRライブラリのAPIを使用） | ❌ | ❌ | ❌ |
+| SSR：各コンポーネントでデータフェッチを行う | ❌ | 各コンポーネントでのデータフェッチは想定されない(❌) | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
+| SSR:SSR時にデータ取得 | ❌ | ⭕️（getServerSidePropsに限らず、該当SSRライブラリのAPIを使用） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
 | Next.js App Router | ⭕️ | RSCを使うので使用しない(❌) | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
 
 * RSC: React Server Component
-* RCC: React Client Component
 * ⭕️: 使いたい
 * 🔼: それ以外のアプローチが使えない場合に最終手段として使用
 * ❌: 使えない
 
 ### それぞれの特徴まとめ
-|  | App Router Cache | getServerSideProps　| SWR | TanStack Query | useEffect |
+|  | RSC(in App Router) | getServerSideProps　| SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- | ---- |
 | フェッチの特徴 | コンポーネント単位でのデータフェッチ/ページ単位でのSSR | ページ単位でのデータフェッチ/ページ単位でのSSR | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング  | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング | コンポーネント単位でのデータフェッチは基本的に行わない/useEffectを使用しているすべてのコンポーネントで起こる |
-| キャッシュ |　⭕️　| 本番環境でのみ(⭕️)|　⭕️　|　⭕️　|　❌　|
-| 状態表示(loading, 再検証など) | クライアントサイドデータフェッチライブラリと比較して煩雑さを感じる(🔼) | ❌ |　⭕️　|　⭕️　| 難しい(❌)　|
+| キャッシュ |　[Request Memoization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)によるリクエスト重複排除(@Server)/ [Data Cache](https://nextjs.org/docs/app/building-your-application/caching#data-cache)によるリクエスト結果のキャッシュ(@Server)/ [Full Route Cache](https://nextjs.org/docs/app/building-your-application/caching#full-route-cache)によるHTMLとRSC payloadのキャッシュ(@Server)/ [Router Cache](https://nextjs.org/docs/app/building-your-application/caching#router-cache)によるRSC payloadのルートごとのキャッシュ(@Client)　| 本番環境でのみ(⭕️)|　⭕️　|　⭕️　|　❌　|
+| 状態表示(loading, 再検証など) | クライアントサイドデータフェッチライブラリと比較して煩雑さ[^1]を感じる(🔼) | ❌ |　⭕️　|　⭕️　| 難しい(❌)　|
 | リクエスト重複排除 |　⭕️　|　❌　|　⭕️　|　⭕️　|　❌　|
 * ⭕️: できる
 * 🔼: できるが他に劣る
@@ -208,3 +211,8 @@ Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-appl
 
 それぞれのデータフェッチ方法の個性を活かしつつ、敵最適所で使っていきたいと思います！
 OSSいつもありがとう！🙌🏻
+
+## 参考
+https://zenn.dev/akfm/articles/next-app-router-client-cache#request-deduping
+
+[^1]: SWRやTanStack Queryのようなクライアントサイドライブラリだと、独自実装せずともloading, 再検証などの状態を戻り値として返却してくれるため。RSC(in App Router)だと`Suspense`や`Error Boundary`は設けられますが、SWRやTanStack Queryの状態管理と比較すると、細かな制御が難しい印象のため、「比較的煩雑」としました。
