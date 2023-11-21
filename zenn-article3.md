@@ -15,34 +15,39 @@ https://github.com/saku-1101/caching-swing-pages
 https://github.com/saku-1101/caching-swing
 
 ## Pages Router(SSR)でのデータフェッチ
-Next.js Pages Routerでは標準でSSR機能が搭載されています。
-SSRをすると、サーバーサイドでページのpre-renderingが行われるため、パフォーマンス・SEOの両面で良い結果を出すことが期待できます。
+Next.jsのPages Routerでは標準で SSR (Server Side Rendering) 機能が提供されており、上手く活用することでパフォーマンス・SEOの両面で恩恵を受けられます。
 [Pre-rendering and Data Fetching](https://nextjs.org/learn-pages-router/basics/data-fetching/pre-rendering)
 [Rendering](https://nextjs.org/docs/pages/building-your-application/rendering)
 ![SSRとCSRの比較](https://storage.googleapis.com/zenn-user-upload/8b09363de1b8-20231119.png)
-*SSRとCSRの比較*
+*SSRとCSRの比較 （Learn Next.js - Pre-rendering and Data Fetching より引用）*
 
 もちろん、Next.jsではSSRをしつつも、useEffectなどを使用してデータフェッチをクライアントサイドに寄せることができます。
 
-しかし、クライアントサイドからデータフェッチを行うよりも、サーバサイドからデータフェッチを行った方がSEOやパフォーマンスの面では優れます。（データソースに近い・ブラウザよりもサーバのスペックの方がいいという前提で）
+しかし、サーバサイドでデータフェッチを行うことで、SEO対策が施しやすかったり、レイアウトシフトの軽減など、パフォーマンス面で恩恵を受けられる可能性があります。
 
-そのため、Next.jsではSSR時に同時にサーバサイドでデータ取得まで行い、初期データが注入されたHTML(+HydrationのためのJS)をブラウザに返却する機能が備わっています。
+これらは、サーバサイドでデータ取得まで行い、初期データが注入されたHTML(+HydrationのためのJS)をブラウザに返却するSSRで実現することができます。
 
 ### Pages Router(SSR)でのデータフェッチの調査
-Next.js Pages Router環境で調査を行っていきます💫
+そんなSSRが可能なNext.jsのPages Router環境でデータフェッチの調査をしていきます💫
 
-Next.jsではSSR時に初期データの注入は、`getServerSideProps`という非同期の関数を`export`することによって実現できます。
+Next.jsでは、SSR時の初期データの注入は`getServerSideProps`という非同期の関数を`export`することによって実現できます。
 https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265edf989ecf2e74d7e/src/pages/ssr-fetch/index.tsx#L19-L72
-`getServerSideProps`という関数名の非同期関数を宣言し、その中に、**APIの内部処理をそのまま**書いていきます。
-取得したデータを`props`プロパティを持つオブジェクトとして`return`することで、SSR時にそのデータが`props`としてJSX/TSXに注入されます。
+今回のサンプルでは、`getServerSideProps` の中で直接レンダリング時に必要となるデータを取得しています。
+取得したデータを`props`プロパティを持つオブジェクトとして`return`することで、SSR時にそのデータが`props`としてJSX(TSX)に注入されます。
 
-...ところで、`getServerSideProps`ではNext.jsの`API Routes`で定義したAPIは使わないのはなぜなのでしょうか？
-答えは、もし`getServerSideProps`に`fetch('${process.env.BASE_URL}/route/to/api')`などを渡してしまうと、サーバ上で`getServerSideProps`に加えてAPIそのものが実行される`API Routes`のどちらも実行され、余計なリクエストが発生するからだそうです。
+#### API Routes との使い分け
+ところで、`getServerSideProps`内でNext.jsのAPI Routesで定義したAPIを使わず、`getRandomNumber()` や `getUer()`といったAPIの内部処理を直接使用したのはなぜだったのでしょうか？
+
+もし`getServerSideProps`に`fetch('${process.env.BASE_URL}/route/to/api')`などを渡してしまうと、サーバ上で`getServerSideProps`に加えてAPIそのものが実行される`API Routes`のどちらも実行され、余計なリクエストが発生してしまうからです。
 > It can be tempting to reach for an API Route when you want to fetch data from the server, then call that API route from getServerSideProps. This is an unnecessary and inefficient approach, as it will cause an extra request to be made due to both getServerSideProps and API Routes running on the server.
 
 https://nextjs.org/docs/pages/building-your-application/data-fetching/get-server-side-props#getserversideprops-or-api-routes
 
-👇こういう書き方がアンチパターン！（次のコードのように、getServerSideProps内でAPI Routeで定義したAPIにリクエストを送ると二重にリクエストを送ることになる）
+先ほどの例で考えてみると、`getRandomNumber()` や `getUer()` と同等の処理内容を返す API Routes が存在していたとしても、それを`getServerSideProps`から`fetch()`などで呼び出すことは避け、内部ロジックのみを流用して直接実行することが推奨されます。
+
+次の例のように`getServerSideProps`から API Route で定義したAPIにリクエストを送ると、二重でリクエストが発生します。特別な理由がない限りはこのような書き方は避けたほうが望ましいです。
+
+🔽 次のコードのように、`getServerSideProps`内でAPI Routeで定義したAPIにリクエストを送ると二重にリクエストを送ることになる
 ```js:index.ts
 const fetcher = (url: string) =>
   fetch(url, {
@@ -70,7 +75,6 @@ export async function getServerSideProps() {
 }
 ```
 
-
 `getServerSideProps`でサーバサイドのデータフェッチの仕組みを完成させたところで、実際にその様子をのぞいてみましょう👀
 
 データ取得がどこで行われているかを確認するために`getServerSideProps`の中に`console.time();`　`console.timeEnd();`を仕込みました。
@@ -83,7 +87,7 @@ SSRのページをリロードしてデータを再取得してみます。
 localhostのターミナルはどうでしょうか？
 ![ターミナル](https://storage.googleapis.com/zenn-user-upload/0794ffbf606c-20231119.png)
 *ターミナルの表示*
-こちらにデータ取得に`xxx ms`かかったとログが出ていました！
+こちらにデータ取得にxxx msかかったとログが出ていました！
 きちんとサーバサイドフェッチできてますね🙌🏻
 
 このように、`getServerSideProps`を使用するとデータ取得の処理をサーバ側で行うことができ、SSR時のレンダリング結果に含めることができます。
@@ -96,7 +100,7 @@ https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265ed
 
 更新したデータをUIに反映します。
 https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265edf989ecf2e74d7e/src/pages/ssr-fetch/children/user.tsx#L18
-ここではNext.js Pages Routerを使用しているので`next/router`からエクスポートされているuseRouterの機能`router.reload();`を利用して再レンダリングをトリガーしました。
+ここではNext.jsのPages Routerを使用しているので`next/router`からエクスポートされているuseRouterの機能`router.reload();`を利用して再レンダリングをトリガーしました。
 
 ### 結果
 `getServerSideProps`を用いた時のデータ取得・更新の挙動です。
@@ -119,7 +123,7 @@ https://nextjs.org/docs/pages/building-your-application/deploying/production-che
 最後に、Next.js App Routerのキャッシュ機構を用いたデータフェッチと再検証を見ていきます。
 
 ### App Routerでのデータフェッチの調査
-RSC(React Server Component)をNext.js App Router環境で使用します。
+RSC(React Server Components)をNext.js App Router環境で使用します。
 
 （page.tsx）
 https://github.com/saku-1101/caching-swing/blob/85aa6baca8ec4ef5f7148a5c57f4e6a5d0072877/src/app/prc-fetch/page.tsx#L8-L24
@@ -128,25 +132,25 @@ https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/children/
 Personコンポーネント以外はRSCとして、それぞれコンポーネント内でfetch関数を直接呼び出してデータの取得を行います。
 
 `loading`に関しては、React18からstableで提供され始めた`Suspense`を用いることでコンポーネントの`Promise`をキャッチして`fallback`の内容を返すことができます。
-Next.js v13以降でページレベルで`loading`を制御したい場合は`loading.jsx/tsx`を`page.jsx/tsx`と同階層に置くことで対応できます。
+Next.js v13以降でページレベルで`loading`を制御したい場合は`loading.jsx(tsx)`を`page.jsx(tsx)`と同階層に置くことで対応できます。
 (※上記のRSCでは`Suspense`の動作を確認するために、意図的にsleep関数を仕込んでいます)
 
-また、`error bounday`に関しては、Reactからは`Suspense`のようにfunction componentとして提供されているものはないようです。
-コンポーネントごとにエラーの出し分けをしたい場合は、[React公式](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)にもあるように、現状[react-error-boundary](https://github.com/bvaughn/react-error-boundary)を使うとよさそうです。
+また、error boundaryに関しては、Reactからは`Suspense`のようにfunction componentとして提供されているものはないようです。
+しかし、独自で Class Component として定義する必要はなく、[React のドキュメント](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)では、[react-error-boundary](https://github.com/bvaughn/react-error-boundary)の利用などが代替手段として紹介されています。
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/error.tsx
-もしNext.js v13以降でページレベルで`error`を制御したい場合は、**Client Componentとして**`error.jsx/tsx`を`loading`と同様`page.jsx/tsx`と同階層に置くことで対応できます。
+もしNext.js v13以降でページレベルで`error`を制御したい場合は、**Client Componentとして**`error.jsx(tsx)`を`loading`と同様`page.jsx(tsx)`と同階層に置くことで対応できます。
 
 それでは、Personコンポーネント内のformを用いてユーザ名を更新してみましょう。
-ここでは`Server Actions`を用いて更新処理を行います。(調査環境: Next.js v14.0.2)
+ここではServer Actionsを用いて更新処理を行います。(調査環境: Next.js v14.0.2)
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/actions/handleUpdateUserName.ts
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/children/user.tsx
-`Server Actions`の細かな説明は割愛しますが、`/app/api`内部でしていた処理と同等の処理を行っています。`Server Actions`からORMを介して直接DBを更新する処理です。
+Server Actionsの細かな説明は割愛しますが、`/app/api`内部でしていた処理と同等の処理を行っています。Server ActionsからORMを介して直接DBを更新する処理です。
 
 ここで注目したいのが`revalidateTag("user");`の部分です。
 https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e9b3de3f5/src/app/prc-fetch/actions/handleUpdateUserName.ts#L14
 https://github.com/saku-1101/caching-swing/blob/6bba6e5f662018c0cc3bdb68fb58c09e9b3de3f5/src/app/prc-fetch/children/form-output.tsx#L6-L9
 `fetch`の際のoptionとして`{ next: { tags: [tag] } }`が渡されたものに関しては、これがデータの再検証の際のキャッシュのタグとして紐付けられます。
-`Server Actions`でデータ更新後に`revalidateTag(tag);`を行うとNext.js組み込みのData Cacheストレージからそのタグに紐づけられたキャッシュが再検証されて最新のデータに置き換わります。
+Server Actionsでデータ更新後に`revalidateTag(tag);`を行うとNext.js組み込みのData Cacheストレージからそのタグに紐づけられたキャッシュが再検証されて最新のデータに置き換わります。
 
 ### 結果
 RSCのfetchを用いたときのデータ取得・更新の挙動です。
@@ -154,8 +158,8 @@ RSCのfetchを用いたときのデータ取得・更新の挙動です。
 *RSC, App Routerでのデータ取得*
 
 ### リクエストの重複
-#### Network Memorization
-Reactには[Network Memorization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いたれていた`Context Provider`の仕組みがキャッシュによって実現されているイメージです。
+#### Request Memoization
+Reactには[Request Memoization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)という機能が備わっており、`fetch`を用いたリクエストをメモ化し、キャッシュサーバへのリクエストの重複を排除してくれます。SWRやTanStack Queryで内部的に用いられていたContext Providerの仕組みがキャッシュによって実現されているイメージです。
 
 さらに、[Router Cache](https://nextjs.org/docs/app/building-your-application/caching#router-cache)という機能により、各ルートへのリクエスト結果がインメモリのクライアントサイドストレージにキャッシュされているため、次の描画までの時間([INP](https://web.dev/articles/inp?hl=ja))も削減されます。
 異なるページを行き来すると、キャッシュされていたRSC payloadが、独自のデータフォーマットで返却されていることがわかります。
@@ -173,7 +177,7 @@ https://nextjs.org/docs/app/building-your-application/caching
 | ---- | ---- | ---- | ---- | ---- |
 | サーバサイドフェッチ | サーバサイドフェッチ | クライアントサイドフェッチ  | クライアントサイドフェッチ | クライアントサイドフェッチ |
 
-* RSC: React Server Component
+* RSC: React Server Components
 
 ### 結局いつどれ使ったらいいの
 |  | RSC(in App Router) | getServerSideProps | SWR | TanStack Query | useEffect |
@@ -183,7 +187,7 @@ https://nextjs.org/docs/app/building-your-application/caching
 | SSR:SSR時にデータ取得 | ❌ | ⭕️（getServerSidePropsに限らず、該当SSRライブラリのAPIを使用） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
 | Next.js App Router | ⭕️ | RSCを使うので使用しない(❌) | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
 
-* RSC: React Server Component
+* RSC: React Server Components
 * ⭕️: 使いたい
 * 🔼: それ以外のアプローチが使えない場合に最終手段として使用
 * ❌: 使えない

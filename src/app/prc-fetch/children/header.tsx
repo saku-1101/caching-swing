@@ -9,10 +9,10 @@ export default async function Header() {
   const randomNumber = await fetcher({
     url: `${process.env.BASE_URL}/api/get/unstable/data`,
   });
-  const user = await fetcher({
-    url: `${process.env.BASE_URL}/api/get/user`,
-    tag: "user",
-  });
+  const user = await fetch(`${process.env.BASE_URL}/api/get/user`, {
+    next: { tags: ["user"] },
+  }).then((res) => res.json());
+
   return (
     <div
       style={{
