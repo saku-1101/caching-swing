@@ -18,13 +18,12 @@ SWRを用いてデータのフェッチ・更新を行うときの挙動の確�
 
 SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットとして次の点が挙げられます。
 - propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点
-- 各コンポーネントでデータフェッチを行うようにしても無駄なネットワークトランザクションが発生しない点
+- 各コンポーネントでデータフェッチを行うようにしても無駄なリクエストが発生しない点
 - レスポンスのキャッシュが行える点
 - mutateを使用して直感的に更新後の状態をUIに反映できる点
 - データ取得中や更新中の状態管理をしやすいのでユーザに細かく正確なフィードバックを送ることができ、UXを高められる点
 
 そのほかにもたくさんのメリットが[SWRのドキュメント](https://swr.vercel.app/ja)で紹介されています。
-[SWR](https://swr.vercel.app/ja)
 
 ### SWRを用いたデータフェッチの調査方法
 それでは早速、SWRを用いてデータフェッチする処理を書いてみましょう。
@@ -58,13 +57,13 @@ SWRではデータ更新の際に`mutate`メソッドを使用することで同
 また、ほかにもSWRにはデータを最新に保つ仕組みがいくつか備わっています。その一部を見てみましょう。
 
 #### Revalidate on Focus
-`window`にフォーカスが当たった場合に自動的に再検証が走り、最新のデータがフェッチされ、再レンダリングされます。
+windowにフォーカスが当たった場合に自動的に再検証が走り、最新のデータがフェッチされ、再レンダリングされます。
 ![SWR: Revalidate on Focus](https://storage.googleapis.com/zenn-user-upload/bac2eca6c17e-20231119.gif)
 *SWR: Revalidate on Focus*
 
 #### Revalidate on Interval
-`window`にフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔でデータフェッチの問い合わせを行って再検証を走らせることができます。異なるデバイス間で定期的にデータ同期を行う際に便利です。
-```diff:js useGetUser.ts
+windowにフォーカスを当てずとも、ポーリング間隔を指定することで、一定の間隔でデータフェッチの問い合わせを行って再検証を走らせることができます。異なるデバイス間で定期的にデータ同期を行う際に便利です。
+```diff ts:useGetUser.ts
 export const useGetUser = () => {
   const url = "/api/get/user";
   const { mutate, data, error, isLoading, isValidating } = useSWR(
@@ -92,7 +91,7 @@ SWRには重複排除の仕組みが備わっています。
 
 この例では、各コンポーネントにデータ取得の責務を結びつけるために、内部で`useSWR`を用いたカスタムhooksをそれぞれの子コンポーネント内で呼び出していました。
 
-これにより、ユーザ情報を必要とするPersonコンポーネントとHeaderコンポーネントそれぞれで`useGetUser` hookをコールすることになるのですが、ネットワークトランザクションが2回起こることにならないのでしょうか？😶
+これにより、ユーザ情報を必要とするPersonコンポーネントとHeaderコンポーネントそれぞれで`useGetUser` hookをコールすることになるのですが、リクエストが2回起こることにならないのでしょうか？😶
 
 `useSWR`では同じキーを持ち、ほぼ同時期にレンダリングされるコンポーネントに関しては、リクエストは一つにまとめられます。
 ここでは
@@ -103,7 +102,7 @@ SWRには重複排除の仕組みが備わっています。
 と、6回のAPIコールを実装していました。
 ![SWRを使うと重複したリクエストは排除される](https://storage.googleapis.com/zenn-user-upload/94e4fe38424e-20231119.png)
 *SWRを使うと重複したリクエストは排除される*
-しかし、実際は**3回**のネットワークトランザクションしか発生していません。
+しかし、実際は**3回**のリクエストしか発生していません。
 
 また、データ更新を行なったときも、更新後にrevalidationしたキーの紐づくデータの再フェッチしか行いません。SWRでは1度取得したレスポンスはクライアントサイドキャッシュに保存され、次に同じリクエストを送る場合はリクエストを送らずにキャッシュからデータが返される使用になっているからです。
 >  SWR は、まずキャッシュからデータを返し（stale）、次にフェッチリクエストを送り（revalidate）、最後に最新のデータを持ってくるという戦略です。
@@ -113,7 +112,7 @@ https://swr.vercel.app/ja
 ![SWRを使うと再検証されるデータのみ再フェッチされ、あとはキャッシュから返される](https://storage.googleapis.com/zenn-user-upload/6d52610411d8-20231119.png)
 *SWRを使うと再検証されるデータのみ再フェッチされ、あとはキャッシュから返される*
 
-この重複排除の仕組みのおかげで、ネットワークトランザクション回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
+この重複排除の仕組みのおかげで、リクエスト回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
 
 ## TanStack Queryを用いたクライアントサイドフェッチ
 TanStack QueryもSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
@@ -121,7 +120,6 @@ TanStack QueryもSWRと同様クライアントサイドキャッシュを利用
 
 そんなTanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
 
-[TanStack Query](https://tanstack.com/query/latest)
 * Query Hooks：SWR→ [useSWR](https://swr.vercel.app/ja/docs/api), TanStack Query→ [useQuery](https://tanstack.com/query/v4/docs/react/reference/useQuery)
 ### TanStack Queryを用いたデータフェッチの調査
 まずは、初期設定です。
@@ -131,11 +129,11 @@ TanStack Queryは内部的に`useContext`や`useEffect`などを使用してい�
 `QueryClientProvider`は`new`した`QueryClient`インスタンスと接続し、インスタンスを内部のコンポーネントに提供して使用できるようにしてくれます。
 (ここでは一旦`broadcastQueryClient`の存在は無視してください)
 
-TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、`props`のバケツリレーを防ぐことができていていいですね!
+TanStack QueryでもSWRと同様、カスタムhooksを用いてデータ取得を各々のコンポーネントで行うため、`props`のバケツリレーを防ぐことができています!
 
 TanStack Queryでも、データフェッチをカスタムhooksに切り出します。
 https://github.com/saku-1101/caching-swing-pages/blob/a9de35ee95420a9049d6a768ef4df0f990eca51d/src/pages/prc-tanstack/hooks/useGithub.ts#L4-L18
-こうすることでデータフェッチhooksが再利用可能になり、各コンポーネントでデータフェッチが行えるので、データ取得の責務をコンポーネントに委譲することができてよいです。
+こうすることでデータフェッチhooksが再利用可能になり、各コンポーネントでデータフェッチが行えるので、データ取得の責務をコンポーネントに委譲することができます。
 
 Personコンポーネントでユーザ名を更新してみます。
 https://github.com/saku-1101/caching-swing-pages/blob/main/src/pages/prc-tanstack/hooks/useMutateUser.ts
@@ -179,7 +177,7 @@ TanStack Queryでは更新処理専用の`useMutation` hooksが存在し、そ�
 また、TanStack Queryにもデータを最新に保つ仕組みが備わっています。Window Focus RefetchingについてSWRと比較して見てみましょう。
 
 #### Window Focus Refetching
-v4までは`window`にフォーカスが当たった場合に自動的に再検証が走り、最新のデータに書きかわる、SWR同等の仕様でした。
+v4まではwindowにフォーカスが当たった場合に自動的に再検証が走り、最新のデータに書きかわる、SWR同等の仕様でした。
 
 しかし、こちらの[PR](https://github.com/TanStack/query/pull/4805)により`focus`イベントで再検証が走ることのデメリットが議論された結果、v5からは`focus`イベントではなく`visibilitychange`によって自動的再検証が走るような仕様になっているようです。
 
@@ -208,9 +206,9 @@ Reactのクライアントサイドでデータをフェッチする手段とし
 
 
 ## 余談 - (TanStack Query)broadcastQueryClientという実験的な機能
-TanStack Queryが`window`にフォーカスが当たった場合ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
+TanStack Queryがwindowにフォーカスが当たった場合ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
 
-以前TanStack Queryを使用したときは、`window`フォーカスで再検証が行われていたため、今回の調査の時に`window`を二つ開いて一つの`window`でデータを更新した時、もう一つの`window`に戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
+以前TanStack Queryを使用したときは、windowフォーカスで再検証が行われていたため、今回の調査の時にwindowを二つ開いて一つのwindowでデータを更新した時、もう一つのwindowに戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
 
 https://github.com/TanStack/query/discussions/6364
 
