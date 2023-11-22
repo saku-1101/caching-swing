@@ -35,22 +35,22 @@ https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e8
 https://github.com/saku-1101/caching-swing-csr/tree/main/src/prc-swr/hooks
 ![/src/prc-swr/hooks](https://storage.googleapis.com/zenn-user-upload/70ee47882896-20231116.png)
 */src/prc-swr/hooks*
-これらのhooksをそのデータが必要な各コンポーネントで呼び出してもらうことで、データ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
+これらのhooksをそのデータを必要とする各コンポーネントから呼び出してもらうことで、データ取得の責務を各コンポーネントが持つことができ、コンポーネント同士が`props`で密に接合された状態になることを防ぎます。
 
 以下は`useSWR`を使用したデータフェッチのためのカスタムhooksの一例です。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGithub.ts#L4-L12
-`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
+`useSWR()`は`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
 
 それでは、Personコンポーネントでユーザ名を更新してみましょう。
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/children/user.tsx#L5-L20
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGetUser.ts#L4-L24
 DB更新処理までは前回同様、`POST`リクエストを送信しているだけです。
 
-SWRではデータ更新の際に`mutate`メソッドを使用することで同様のキーを持つリソースに対して再検証を発行 (データを期限切れとしてマークして再フェッチを発行) できます。
+SWRではデータ更新の際に`mutate`メソッドを使用することで同一のキーを持つリソースに対して再検証を発行 (データを期限切れとしてマークして再フェッチを発行) できます。
 ここでは`mutate`メソッドが`useGetUser`内の`useSWR`から発行されたものですので、`/api/get/user`をキーとして持つリソース、つまり`useGetUser`内部で使用している`useSWR`に「そのデータ古いですよー」と伝えて再フェッチを促します。すると、`validation`がトリガーされ、最新のデータがフェッチされてUIに反映されます。
 
 ### 結果
-先ほどのデータ更新時の再レンダリング範囲注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
+先ほどのデータ更新時の再レンダリング範囲に注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
 ![SWRを使うと限定的な範囲で再レンダリングができる](https://storage.googleapis.com/zenn-user-upload/13334e1f67c6-20231119.gif)
 *SWRを使うと限定的な範囲で再レンダリングができる*
 
@@ -87,7 +87,7 @@ export const useGetUser = () => {
 *SWR: Revalidate on Interval*
 
 ### リクエストの重複
-SWRには重複排除の仕組みが備わっています。
+SWRにはリクエストの重複を排除する仕組みが備わっています。
 
 この例では、各コンポーネントにデータ取得の責務を結びつけるために、内部で`useSWR`を用いたカスタムhooksをそれぞれの子コンポーネント内で呼び出していました。
 
@@ -115,7 +115,7 @@ https://swr.vercel.app/ja
 この重複排除の仕組みのおかげで、リクエスト回数によるパフォーマンスの問題を気にせずにアプリ内でバシバシSWRフックを再利用することができます💪🏻❤️‍🔥
 
 ## TanStack Queryを用いたクライアントサイドフェッチ
-TanStack QueryもSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
+[TanStack Query](https://tanstack.com/query/latest)もSWRと同様クライアントサイドキャッシュを利用したデータフェッチが行えるライブラリです。
 バンドルサイズはSWRの３倍ほどありますが、Query Hooksの戻り値の種類が多かったり、Query Hooksが持っているoptionの数が多かったりとSWRよりも高機能です。
 
 そんなTanStack Queryを用いてデータのフェッチ・更新を行うときの挙動も確認していきます。
@@ -205,8 +205,8 @@ Reactのクライアントサイドでデータをフェッチする手段とし
 次回は、Reactのサーバーサイドでデータをフェッチする方法の代表として[Next.js Pages Routerでのデータフェッチ・Next.js App RouterでReact Server Componentsを使用してのデータフェッチ](https://zenn.dev/cybozu_frontend/articles/21a924a294d869)を理解していく記事です。
 
 
-## 余談 - (TanStack Query)broadcastQueryClientという実験的な機能
-TanStack Queryがwindowにフォーカスが当たった場合ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
+## （余談）TanStack QueryのbroadcastQueryClientという実験的な機能
+TanStack Queryが`window`にフォーカスが当たった場合ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
 
 以前TanStack Queryを使用したときは、windowフォーカスで再検証が行われていたため、今回の調査の時にwindowを二つ開いて一つのwindowでデータを更新した時、もう一つのwindowに戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
 
@@ -214,7 +214,7 @@ https://github.com/TanStack/query/discussions/6364
 
 結果、私の確認不足ということで、`v5`から上記の挙動に変わっていました。
 しかし、今は`broadcastQueryClient`でアプリレベルで`connection`を張って変更を検知できるようにしている機能を開発してるよという回答をいただき、詳細な仕組みは理解できていませんが、それも試してみました。(実はこれもexperimentalとしてlatestのdocumentには明記されている)
-```diff:js page.tsx
+```diff ts:page.tsx
 "use client";
 +import { broadcastQueryClient } from "@tanstack/query-broadcast-client-experimental";
 import { QueryClient, QueryClientProvider } from "@tanstack/TanStack Query";
