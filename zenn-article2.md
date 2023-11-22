@@ -216,7 +216,7 @@ https://github.com/TanStack/query/discussions/6364
 
 結果、私の確認不足ということで、`v5`から上記の挙動に変わっていました。
 しかし、今は`broadcastQueryClient`でアプリレベルで`connection`を張って変更を検知できるようにしている機能を開発してるよという回答をいただき、詳細な仕組みは理解できていませんが、それも試してみました。(実はこれもexperimentalとしてlatestのdocumentには明記されている)
-```diff:js page.tsx
+```diff ts:page.tsx
 "use client";
 +import { broadcastQueryClient } from "@tanstack/query-broadcast-client-experimental";
 import { QueryClient, QueryClientProvider } from "@tanstack/TanStack Query";
