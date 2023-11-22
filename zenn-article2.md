@@ -16,7 +16,7 @@ https://github.com/saku-1101/caching-swing
 ## SWRを用いたクライアントサイドフェッチ
 SWRを用いてデータのフェッチ・更新を行うときの挙動の確認から始めていきます。
 
-SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットとして次の点が挙げられます。
+まず、SWRのようなサードパーティ製のデータフェッチライブラリを使うことのメリットとしては次の点が挙げられます。
 - propsのバケツリレーを起こさずに、コンポーネント各々がオーナーシップを持ってデータを扱える点
 - 各コンポーネントでデータフェッチを行うようにしても無駄なリクエストが発生しない点
 - レスポンスのキャッシュが行える点
@@ -41,7 +41,7 @@ https://github.com/saku-1101/caching-swing-csr/tree/main/src/prc-swr/hooks
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGithub.ts#L4-L12
 `useSWR()`は`error`や`loading`, `validating`(再検証中)などのデータ取得の際に起こる状態を返してくれるので、より細かで正確なフィードバックを行うことができます。
 
-それでは、Personコンポーネントでユーザ名を更新してみましょう。
+それでは、Personコンポーネントでユーザ名を更新してみましょう🏃🏻‍♀️
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/children/user.tsx#L5-L20
 https://github.com/saku-1101/caching-swing-csr/blob/d5e43f783b74ec29eb3a8410b7e84d45d6e9fdc5/src/prc-swr/hooks/useGetUser.ts#L4-L24
 DB更新処理までは前回同様、`POST`リクエストを送信しているだけです。
@@ -50,7 +50,8 @@ SWRではデータ更新の際に`mutate`メソッドを使用することで同
 ここでは`mutate`メソッドが`useGetUser`内の`useSWR`から発行されたものですので、`/api/get/user`をキーとして持つリソース、つまり`useGetUser`内部で使用している`useSWR`に「そのデータ古いですよー」と伝えて再フェッチを促します。すると、`validation`がトリガーされ、最新のデータがフェッチされてUIに反映されます。
 
 ### 結果
-先ほどのデータ更新時の再レンダリング範囲に注目してみます。すると、以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることがわかります。
+先ほどのデータ更新時の再レンダリング範囲に注目してみます。
+以下のように`useGetUser`を使用しているコンポーネントでのみ再レンダリングが発火していることが確認できるかと思います。
 ![SWRを使うと限定的な範囲で再レンダリングができる](https://storage.googleapis.com/zenn-user-upload/13334e1f67c6-20231119.gif)
 *SWRを使うと限定的な範囲で再レンダリングができる*
 
@@ -97,14 +98,14 @@ SWRにはリクエストの重複を排除する仕組みが備わっていま�
 ここでは
 - `/api/user/get` @ Header, Personコンポーネント
 - `/api/get/unstale/data` @ Header, Contentコンポーネント
-- `https://github.com` @ Header, Contetnコンポーネント
+- `https://github.com` @ Header, Contentコンポーネント
 
 と、6回のAPIコールを実装していました。
 ![SWRを使うと重複したリクエストは排除される](https://storage.googleapis.com/zenn-user-upload/94e4fe38424e-20231119.png)
 *SWRを使うと重複したリクエストは排除される*
 しかし、実際は**3回**のリクエストしか発生していません。
 
-また、データ更新を行なったときも、更新後にrevalidationしたキーの紐づくデータの再フェッチしか行いません。SWRでは1度取得したレスポンスはクライアントサイドキャッシュに保存され、次に同じリクエストを送る場合はリクエストを送らずにキャッシュからデータが返される使用になっているからです。
+また、データ更新を行なったときも、更新後にrevalidationしたキーの紐づくデータの再フェッチしか行いません。SWRでは1度取得したレスポンスはクライアントサイドキャッシュに保存され、次に同じリクエストを送る場合はリクエストを送らずにキャッシュからデータが返される仕様になっているからです。
 >  SWR は、まずキャッシュからデータを返し（stale）、次にフェッチリクエストを送り（revalidate）、最後に最新のデータを持ってくるという戦略です。
 https://swr.vercel.app/ja
 
