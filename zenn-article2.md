@@ -207,7 +207,7 @@ Reactのクライアントサイドでデータをフェッチする手段とし
 次回は、Reactのサーバーサイドでデータをフェッチする方法の代表として[Next.js Pages Routerでのデータフェッチ・Next.js App RouterでReact Server Componentsを使用してのデータフェッチ](https://zenn.dev/cybozu_frontend/articles/21a924a294d869)を理解していく記事です。
 
 
-## 余談 - (TanStack Query)broadcastQueryClientという実験的な機能
+## （余談）TanStack QueryのbroadcastQueryClientという実験的な機能
 TanStack Queryが`window`にフォーカスが当たった場合ではなく`visibilitychange`によってデータの再検証を行う方向になったお話を先ほどしました。
 
 以前TanStack Queryを使用したときは、`window`フォーカスで再検証が行われていたため、今回の調査の時に`window`を二つ開いて一つの`window`でデータを更新した時、もう一つの`window`に戻ってデータが更新されないことに（？）となり、Q&Aを投げてみました。
