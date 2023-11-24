@@ -1,9 +1,13 @@
 「Reactのさまざまなデータフェッチ方法を比較して理解して正しく使用する」シリーズの3記事目、最終記事です🌟
 
-今回は「Pages RouterとApp Routerでのデータフェッチ」についてです。
-1. イントロ+useEffectを用いたデータフェッチ
-2. SWR・TanStack Queryを用いたデータフェッチ
+今回は「 Next.js Pages Router(SSR)でのデータフェッチとApp Routerでのデータフェッチ」について理解を深めていきます。
+
+また、最後の[まとめ]()で「Reactのさまざまなデータフェッチ」３シリーズの総括をしていきます。
+
+1. [イントロ+useEffectを用いたデータフェッチ](https://zenn.dev/cybozu_frontend/articles/f1f03e69946177)
+2. [SWR・TanStack Queryを用いたデータフェッチ](https://zenn.dev/cybozu_frontend/articles/a735baacc09c6a)
 3. Pages Router(SSR)でのデータフェッチ+App Routerでのデータフェッチ+まとめ ← 👀この記事
+s
 
 ## Repository
 以下は今シリーズで用いたリポジトリです。
@@ -36,7 +40,7 @@ https://github.com/saku-1101/caching-swing-pages/blob/9f7495226371929c6e817265ed
 取得したデータを`props`プロパティを持つオブジェクトとして`return`することで、SSR時にそのデータが`props`としてJSX(TSX)に注入されます。
 
 #### API Routes との使い分け
-ところで、`getServerSideProps`内でNext.jsのAPI Routesで定義したAPIを使わず、`getRandomNumber()` や `getUer()`といったAPIの内部処理を直接使用したのはなぜだったのでしょうか？
+ところで、`getServerSideProps`内でNext.jsのAPI Routesで定義したAPIを使わず、`getRandomNumber()` や `getUer()`といったAPIの内部処理を直接使用したのはなぜだったのでしょうか？😶
 
 もし`getServerSideProps`に`fetch('${process.env.BASE_URL}/route/to/api')`などを渡してしまうと、サーバ上で`getServerSideProps`に加えてAPIそのものが実行される`API Routes`のどちらも実行され、余計なリクエストが発生してしまうからです。
 > It can be tempting to reach for an API Route when you want to fetch data from the server, then call that API route from getServerSideProps. This is an unnecessary and inefficient approach, as it will cause an extra request to be made due to both getServerSideProps and API Routes running on the server.
@@ -88,7 +92,7 @@ localhostのターミナルはどうでしょうか？
 ![ターミナル](https://storage.googleapis.com/zenn-user-upload/0794ffbf606c-20231119.png)
 *ターミナルの表示*
 こちらにデータ取得にxxx msかかったとログが出ていました！
-きちんとサーバサイドフェッチできてますね🙌🏻
+きちんとサーバサイドフェッチできてますね👏🏻
 
 このように、`getServerSideProps`を使用するとデータ取得の処理をサーバ側で行うことができ、SSR時のレンダリング結果に含めることができます。
 
@@ -135,7 +139,7 @@ Personコンポーネント以外はRSCとして、それぞれコンポーネ�
 Next.js v13以降でページレベルで`loading`を制御したい場合は`loading.jsx(tsx)`を`page.jsx(tsx)`と同階層に置くことで対応できます。
 (※上記のRSCでは`Suspense`の動作を確認するために、意図的にsleep関数を仕込んでいます)
 
-また、error boundaryに関しては、Reactからは`Suspense`のようにfunction componentとして提供されているものはないようです。
+また、error boundaryに関しては、Reactからは`Suspense`のようにFunction Componentとして提供されているものはないようです。
 しかし、独自で Class Component として定義する必要はなく、[React のドキュメント](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)では、[react-error-boundary](https://github.com/bvaughn/react-error-boundary)の利用などが代替手段として紹介されています。
 https://github.com/saku-1101/caching-swing/blob/main/src/app/prc-fetch/error.tsx
 もしNext.js v13以降でページレベルで`error`を制御したい場合は、**Client Componentとして**`error.jsx(tsx)`を`loading`と同様`page.jsx(tsx)`と同階層に置くことで対応できます。
@@ -173,34 +177,33 @@ https://nextjs.org/docs/app/building-your-application/caching
 今回の３シリーズの調査をまとめた結果です✉️
 
 ### フェッチの分類
-| RSC(in App Router) | getServerSideProps | SWR | TanStack Query | useEffect |
+| RSC(in App Router) | getServerSideProps(in Pages Router) | SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- |
 | サーバサイドフェッチ | サーバサイドフェッチ | クライアントサイドフェッチ  | クライアントサイドフェッチ | クライアントサイドフェッチ |
 
 * RSC: React Server Components
 
 ### 結局いつどれ使ったらいいの
-|  | RSC(in App Router) | getServerSideProps | SWR | TanStack Query | useEffect |
+|  | RSC(in App Router) | getServerSideProps(in Pages Router) | SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- | ---- |
 | CSR | ❌ | ❌ | ⭕️  | ⭕️ | 🔼 |
-| SSR：各コンポーネントでデータフェッチを行う | ❌ | 各コンポーネントでのデータフェッチは想定されない(❌) | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
-| SSR:SSR時にデータ取得 | ❌ | ⭕️（getServerSidePropsに限らず、該当SSRライブラリのAPIを使用） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
-| Next.js App Router | ⭕️ | RSCを使うので使用しない(❌) | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（⭕️） | サーバサイドでデータフェッチができいないとき（🔼） |
+| SSR：各コンポーネントでデータフェッチを行う | ❌ | 各コンポーネントでのデータフェッチは想定されない(❌) | Hydrationの考慮が必要（⭕️）[^1] | Hydrationの考慮が必要（⭕️）[^1] | サーバサイドでデータフェッチができないとき（🔼） |
+| SSR:SSR時にデータ取得 | ❌ | ⭕️（getServerSidePropsに限らず、該当SSRライブラリのAPIを使用） | サーバサイドでデータフェッチができないとき（⭕️） | サーバサイドでデータフェッチができないとき（⭕️） | サーバサイドでデータフェッチができないとき（🔼） |
+| Next.js App Router | ⭕️ | ❌ | Client Components で利用可能（⭕️） | Client Components で利用可能（⭕️） | Client Components で利用可能（🔼） |
 
 * RSC: React Server Components
-* ⭕️: 使いたい
-* 🔼: それ以外のアプローチが使えない場合に最終手段として使用
-* ❌: 使えない
+* ⭕️: 利用可能/推奨
+* 🔼: 利用可能/他のアプローチを推奨
+* ❌: 利用不可
 
 ### それぞれの特徴まとめ
-|  | RSC(in App Router) | getServerSideProps　| SWR | TanStack Query | useEffect |
+|  | RSC(in App Router) | getServerSideProps(in Pages Router)　| SWR | TanStack Query | useEffect |
 | ---- | ---- | ---- | ---- | ---- | ---- |
 | フェッチの特徴 | コンポーネント単位でのデータフェッチ/ページ単位でのSSR | ページ単位でのデータフェッチ/ページ単位でのSSR | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング  | コンポーネント単位でのデータフェッチ/子コンポーネント単位でのレンダリング | コンポーネント単位でのデータフェッチは基本的に行わない/useEffectを使用しているすべてのコンポーネントで起こる |
 | キャッシュ |　[Request Memoization](https://nextjs.org/docs/app/building-your-application/caching#request-memoization)によるリクエスト重複排除(@Server)/ [Data Cache](https://nextjs.org/docs/app/building-your-application/caching#data-cache)によるリクエスト結果のキャッシュ(@Server)/ [Full Route Cache](https://nextjs.org/docs/app/building-your-application/caching#full-route-cache)によるHTMLとRSC payloadのキャッシュ(@Server)/ [Router Cache](https://nextjs.org/docs/app/building-your-application/caching#router-cache)によるRSC payloadのルートごとのキャッシュ(@Client)　| 本番環境でのみ(⭕️)|　⭕️　|　⭕️　|　❌　|
-| 状態表示(loading, 再検証など) | クライアントサイドデータフェッチライブラリと比較して煩雑さ[^1]を感じる(🔼) | ❌ |　⭕️　|　⭕️　| 難しい(❌)　|
+| 状態表示(loading, 再検証など) |　⭕️[^2]　| ❌ |　⭕️　|　⭕️　| 難しい(❌)　|
 | リクエスト重複排除 |　⭕️　|　❌　|　⭕️　|　⭕️　|　❌　|
 * ⭕️: できる
-* 🔼: できるが他に劣る
 * ❌: できない
 
 ## まとめ
@@ -209,9 +212,9 @@ https://nextjs.org/docs/app/building-your-application/caching
 まとめると、
 1. Next.jsなどのフレームワークを使用している場合は、組み込みのデータフェッチを利用する
 2. フレームワークを利用しない場合はSWRやTanStack Queryなど、クライアントサイドキャッシュを利用できるライブラリを検討する
-3. それ以外の場合・どちらも使えない場合はuseEffectで直接データフェッチをする
+3. それ以外の場合・どちらも使えない場合は`useEffect`で直接データフェッチをする
 
-となり、useEffectの出番は稀になりそうです。
+となり、`useEffect`の出番は稀になりそうです。
 
 それぞれのデータフェッチ方法の個性を活かしつつ、敵最適所で使っていきたいと思います！
 OSSいつもありがとう！🙌🏻
@@ -219,4 +222,9 @@ OSSいつもありがとう！🙌🏻
 ## 参考
 https://zenn.dev/akfm/articles/next-app-router-client-cache#request-deduping
 
-[^1]: SWRやTanStack Queryのようなクライアントサイドライブラリだと、独自実装せずともloading, 再検証などの状態を戻り値として返却してくれるため。RSC(in App Router)だと`Suspense`や`Error Boundary`は設けられますが、SWRやTanStack Queryの状態管理と比較すると、細かな制御が難しい印象のため、「比較的煩雑」としました。
+[^1]: これらのクライアントサイドデータフェッチライブラリをSSRと組み合わせて使用する場合、`getServerSideProps`などでデータをサーバ側でpre-fetchし、そのデータをSWRやTanStack Queryの初期データとして注入できます。
+[SSRでSWRを使用する](https://swr.vercel.app/examples/ssr.en-US)
+[SSRでSWRを使用する - codesandbox](https://codesandbox.io/p/devbox/swr-ssr-0huort?embed=1&file=%2Fpages%2Findex.js%3A13%2C6)
+[SSRでTanStack Queryを使用する](https://tanstack.com/query/latest/docs/react/guides/ssr)
+
+[^2]: App Routerで使用されているRSCについても状態表示は可能なのですが、筆者の感想としてはクライアントサイドデータフェッチライブラリと比較して煩雑さを感じる部分があります。SWRやTanStack Queryのようなクライアントサイドライブラリだと、独自実装せずともloading・再検証などの状態を戻り値として返却してくれるからです。RSC(in App Router)でも`Suspense`や`Error Boundary`を設けて状態表示はできるのですが、SWRやTanStack Queryの状態管理と比較すると細かな制御が難しい印象のため、「比較的煩雑」としました。
