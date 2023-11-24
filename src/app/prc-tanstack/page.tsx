@@ -8,22 +8,22 @@ import Header from "./children/header";
 import { Person } from "./children/user";
 
 export default function TanstackPage() {
-	const queryClient = new QueryClient();
-	broadcastQueryClient({
-		queryClient,
-		broadcastChannel: "tanstack-app",
-	});
-	return (
-		<QueryClientProvider client={queryClient}>
-			<div>
-				<Header />
-				<Content />
-				<Person />
-				<BackButton />
-				<LinkButton link="/prc-swr" label="swr" />
-				<LinkButton link="/prc-fetch" label="fetch" />
-				<LinkButton link="/legacy-fetch" label="legacy" />
-			</div>
-		</QueryClientProvider>
-	);
+  const queryClient = new QueryClient();
+  broadcastQueryClient({
+    queryClient,
+    broadcastChannel: "tanstack-app",
+  });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <div>
+        <Header />
+        <Content />
+        <Person />
+        <BackButton />
+        <LinkButton link="/prc-swr" label="swr" />
+        <LinkButton link="/prc-fetch" label="fetch" />
+        <LinkButton link="/legacy-fetch" label="legacy" />
+      </div>
+    </QueryClientProvider>
+  );
 }

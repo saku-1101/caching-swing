@@ -18,15 +18,15 @@ import Header from "./children/header";
 import { Person } from "./children/user";
 
 export default function SWRPage() {
-	return (
-		<div>
-			<Header />
-			<Content />
-			<Person />
-			<BackButton />
-			<LinkButton link="/prc-tanstack" label="tanstack" />
-			<LinkButton link="/prc-fetch" label="fetch" />
-			<LinkButton link="/legacy-fetch" label="legacy" />
-		</div>
-	);
+  return (
+    <div>
+      <Header />
+      <Content />
+      <Person />
+      <BackButton />
+      <LinkButton link="/prc-tanstack" label="tanstack" />
+      <LinkButton link="/prc-fetch" label="fetch" />
+      <LinkButton link="/legacy-fetch" label="legacy" />
+    </div>
+  );
 }

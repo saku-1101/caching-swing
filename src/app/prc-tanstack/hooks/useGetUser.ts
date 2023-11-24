@@ -11,6 +11,6 @@ export const useGetUser = () => {
   return {
     user: data,
     userError: error,
-    userIsFetching: isFetching
+    userIsFetching: isFetching,
   };
 };

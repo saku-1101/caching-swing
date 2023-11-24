@@ -6,19 +6,19 @@ import Header from "./children/header";
 import { Person } from "./children/user";
 
 export default async function RSCFetchPage() {
-	return (
-		<div>
-			<Suspense fallback={<p>⏳loading...</p>}>
-				<Header />
-			</Suspense>
-			<Suspense fallback={<p>⏳loading...</p>}>
-				<Content />
-			</Suspense>
-			<Suspense fallback={<p>⏳loading...</p>}>
-				<FormOutput />
-			</Suspense>
-			<Person />
-			<Buttons />
-		</div>
-	);
+  return (
+    <div>
+      <Suspense fallback={<p>⏳loading...</p>}>
+        <Header />
+      </Suspense>
+      <Suspense fallback={<p>⏳loading...</p>}>
+        <Content />
+      </Suspense>
+      <Suspense fallback={<p>⏳loading...</p>}>
+        <FormOutput />
+      </Suspense>
+      <Person />
+      <Buttons />
+    </div>
+  );
 }
